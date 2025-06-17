@@ -1,29 +1,26 @@
 
 import { useState } from "react";
 import Header from "@/components/Header";
-import QRGenerator from "@/components/QRGenerator";
-import FeedbackAnalysis from "@/components/FeedbackAnalysis";
-import Analytics from "@/components/Analytics";
+import Home from "@/components/Home";
 import AlertSystem from "@/components/AlertSystem";
 import Settings from "@/components/Settings";
 
 const Dashboard = () => {
-  const [activeTab, setActiveTab] = useState("generator");
+  const [activeTab, setActiveTab] = useState("home");
 
   const renderContent = () => {
     switch (activeTab) {
+      case "home":
       case "generator":
-        return <QRGenerator />;
       case "analysis":
-        return <FeedbackAnalysis />;
       case "analytics":
-        return <Analytics />;
+        return <Home />;
       case "alerts":
         return <AlertSystem />;
       case "settings":
         return <Settings />;
       default:
-        return <QRGenerator />;
+        return <Home />;
     }
   };
 
@@ -31,7 +28,7 @@ const Dashboard = () => {
     <div className="min-h-screen bg-background">
       <Header activeTab={activeTab} onTabChange={setActiveTab} />
       
-      <main className="container mx-auto px-6 py-8">
+      <main className="container mx-auto px-4 sm:px-6 py-8">
         {renderContent()}
       </main>
     </div>

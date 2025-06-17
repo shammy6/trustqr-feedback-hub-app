@@ -2,10 +2,10 @@
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
-import { Brain, TrendingUp } from "lucide-react";
+import { Brain, TrendingUp, TrendingDown, Lightbulb, Target } from "lucide-react";
 
 const FeedbackAnalysis = () => {
-  // Mock data for demonstration
+  // Mock data for demonstration - in real app this would come from API
   const feedbackData = {
     totalResponses: 127,
     averageRating: 4.2,
@@ -39,12 +39,48 @@ const FeedbackAnalysis = () => {
         sentiment: "neutral",
         timestamp: "1 day ago"
       }
-    ],
-    suggestions: [
-      "Consider improving service speed based on recent feedback",
-      "Maintain the excellent coffee quality that customers love",
-      "Address temperature consistency issues"
     ]
+  };
+
+  // Dynamic suggestions based on current performance
+  const getSmartSuggestions = () => {
+    const { positive, negative } = feedbackData.sentiment;
+    
+    if (positive >= 70) {
+      return [
+        "🎉 Excellent work! Your positive feedback rate is outstanding at " + positive + "%",
+        "💡 Consider asking satisfied customers to leave reviews on Google to boost your online presence",
+        "🔄 Maintain your current service standards - customers clearly love what you're doing"
+      ];
+    } else if (negative >= 20) {
+      return [
+        "⚠️ Address service speed issues mentioned in recent feedback",
+        "🌡️ Implement temperature checks for beverages to ensure consistency",
+        "📋 Consider staff training on customer service best practices"
+      ];
+    } else {
+      return [
+        "📈 Your feedback is trending positively - keep up the good work!",
+        "🎯 Focus on converting neutral feedback to positive by addressing minor issues",
+        "💪 Consider implementing a customer loyalty program to increase satisfaction"
+      ];
+    }
+  };
+
+  const getPerformanceInsight = () => {
+    const { positive, negative, neutral } = feedbackData.sentiment;
+    const trend = positive > 60 ? "positive" : negative > 20 ? "negative" : "stable";
+    
+    let insight = "";
+    if (trend === "positive") {
+      insight = `Your business is performing exceptionally well with ${positive}% positive feedback. Customers consistently praise your service quality and atmosphere. This strong performance indicates that your current operational strategies are highly effective.`;
+    } else if (trend === "negative") {
+      insight = `There are some areas that need attention, with ${negative}% negative feedback. The main concerns seem to be around service speed and product consistency. Addressing these issues could significantly improve customer satisfaction.`;
+    } else {
+      insight = `Your business shows steady performance with room for improvement. While ${positive}% of feedback is positive, the ${neutral}% neutral responses suggest opportunities to exceed customer expectations and create more memorable experiences.`;
+    }
+    
+    return insight;
   };
 
   const getSentimentEmoji = (sentiment: string) => {
@@ -118,7 +154,8 @@ const FeedbackAnalysis = () => {
       <Card className="trustqr-card">
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
-            🧠 AI Sentiment Analysis
+            <Brain className="w-5 h-5" />
+            AI Sentiment Analysis
           </CardTitle>
           <CardDescription>
             Automatic analysis of customer feedback sentiment
@@ -153,6 +190,26 @@ const FeedbackAnalysis = () => {
         </CardContent>
       </Card>
 
+      {/* Performance Insight Section */}
+      <Card className="trustqr-card">
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <Target className="w-5 h-5" />
+            Performance Insight
+          </CardTitle>
+          <CardDescription>
+            AI-powered analysis of your current business performance
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <div className="p-4 bg-accent/10 rounded-lg border-l-4 border-accent">
+            <p className="text-sm text-foreground leading-relaxed">
+              {getPerformanceInsight()}
+            </p>
+          </div>
+        </CardContent>
+      </Card>
+
       {/* Recent Feedback */}
       <Card className="trustqr-card">
         <CardHeader>
@@ -162,7 +219,7 @@ const FeedbackAnalysis = () => {
         <CardContent className="space-y-4">
           {feedbackData.recentFeedback.map((feedback) => (
             <div key={feedback.id} className="p-4 border border-border rounded-lg bg-card/50">
-              <div className="flex items-start justify-between mb-2">
+              <div className="flex flex-col sm:flex-row sm:items-start justify-between mb-2 gap-2">
                 <div className="flex items-center gap-2">
                   <span className="font-medium text-sm">{feedback.customerName}</span>
                   <Badge variant="outline" className={getSentimentColor(feedback.sentiment)}>
@@ -180,19 +237,20 @@ const FeedbackAnalysis = () => {
         </CardContent>
       </Card>
 
-      {/* AI Suggestions */}
+      {/* Dynamic AI Suggestions */}
       <Card className="trustqr-card">
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
-            💡 AI Improvement Suggestions
+            <Lightbulb className="w-5 h-5" />
+            Smart Improvement Suggestions
           </CardTitle>
           <CardDescription>
-            Based on your feedback analysis
+            Personalized recommendations based on your current performance
           </CardDescription>
         </CardHeader>
         <CardContent>
           <div className="space-y-3">
-            {feedbackData.suggestions.map((suggestion, index) => (
+            {getSmartSuggestions().map((suggestion, index) => (
               <div key={index} className="flex items-start gap-3 p-3 bg-accent/10 rounded-lg">
                 <div className="w-6 h-6 rounded-full bg-accent flex items-center justify-center flex-shrink-0 mt-0.5">
                   <span className="text-xs font-bold text-background">{index + 1}</span>

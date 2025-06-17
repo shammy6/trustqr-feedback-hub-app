@@ -56,7 +56,7 @@ const FeedbackForm = () => {
         type="button"
         onClick={() => setFormData({ ...formData, rating: (i + 1).toString() })}
         className={`text-2xl transition-colors ${
-          i < rating ? "text-yellow-400" : "text-gray-300 hover:text-yellow-200"
+          i < rating ? "text-yellow-400" : "text-gray-500 hover:text-yellow-200"
         }`}
       >
         ⭐
@@ -67,12 +67,12 @@ const FeedbackForm = () => {
   if (isSubmitted) {
     return (
       <div className="min-h-screen bg-background flex items-center justify-center p-4">
-        <Card className="w-full max-w-md">
+        <Card className="w-full max-w-md trustqr-card">
           <CardHeader className="text-center">
-            <div className="w-16 h-16 mx-auto mb-4 rounded-full bg-red-100 flex items-center justify-center">
+            <div className="w-16 h-16 mx-auto mb-4 rounded-full bg-red-500/20 flex items-center justify-center">
               <span className="text-2xl">😞</span>
             </div>
-            <CardTitle className="text-xl text-red-600">We're Sorry!</CardTitle>
+            <CardTitle className="text-xl text-red-400">We're Sorry!</CardTitle>
             <CardDescription>
               We sincerely apologize that we didn't meet your expectations
             </CardDescription>
@@ -85,11 +85,11 @@ const FeedbackForm = () => {
               <Textarea
                 id="additionalFeedback"
                 placeholder="Your detailed feedback helps us improve..."
-                className="min-h-[100px]"
+                className="min-h-[100px] bg-input border-border"
               />
             </div>
             
-            <Button className="w-full bg-accent hover:bg-accent/90 text-accent-foreground">
+            <Button className="w-full trustqr-emerald-gradient text-white hover:opacity-90">
               Submit Additional Feedback
             </Button>
             
@@ -104,12 +104,12 @@ const FeedbackForm = () => {
 
   return (
     <div className="min-h-screen bg-background flex items-center justify-center p-4">
-      <Card className="w-full max-w-md">
+      <Card className="w-full max-w-md trustqr-card">
         <CardHeader className="text-center">
           <div className="w-12 h-12 mx-auto mb-4 rounded-full trustqr-gradient flex items-center justify-center">
-            <span className="text-white font-bold">T</span>
+            <span className="text-white font-bold text-lg">TQ</span>
           </div>
-          <CardTitle className="text-xl text-trustqr-navy">Share Your Experience</CardTitle>
+          <CardTitle className="text-xl text-foreground">Share Your Experience</CardTitle>
           <CardDescription>
             Your feedback helps us serve you better
           </CardDescription>
@@ -125,6 +125,7 @@ const FeedbackForm = () => {
                 placeholder="Enter your name"
                 value={formData.customerName}
                 onChange={(e) => setFormData({ ...formData, customerName: e.target.value })}
+                className="bg-input border-border"
               />
             </div>
 
@@ -147,7 +148,7 @@ const FeedbackForm = () => {
                 placeholder="What did you think about our service?"
                 value={formData.feedback}
                 onChange={(e) => setFormData({ ...formData, feedback: e.target.value })}
-                className="min-h-[100px]"
+                className="min-h-[100px] bg-input border-border"
                 required
               />
             </div>

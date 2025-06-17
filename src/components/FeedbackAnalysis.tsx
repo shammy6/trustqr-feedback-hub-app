@@ -2,6 +2,7 @@
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
+import { Brain, TrendingUp } from "lucide-react";
 
 const FeedbackAnalysis = () => {
   // Mock data for demonstration
@@ -56,41 +57,51 @@ const FeedbackAnalysis = () => {
 
   const getSentimentColor = (sentiment: string) => {
     switch (sentiment) {
-      case 'positive': return 'bg-green-100 text-green-800';
-      case 'negative': return 'bg-red-100 text-red-800';
-      default: return 'bg-yellow-100 text-yellow-800';
+      case 'positive': return 'bg-green-500/20 text-green-400 border-green-500/30';
+      case 'negative': return 'bg-red-500/20 text-red-400 border-red-500/30';
+      default: return 'bg-yellow-500/20 text-yellow-400 border-yellow-500/30';
     }
   };
 
   return (
     <div className="space-y-6">
+      <div className="mb-8">
+        <h2 className="text-2xl font-bold text-foreground mb-2 flex items-center gap-2">
+          <Brain className="w-6 h-6 text-accent" />
+          AI Feedback Analysis
+        </h2>
+        <p className="text-muted-foreground">
+          Intelligent insights from your customer feedback
+        </p>
+      </div>
+
       {/* Overview Stats */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-        <Card>
+        <Card className="trustqr-card">
           <CardContent className="p-6">
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-sm font-medium text-muted-foreground">Total Responses</p>
-                <p className="text-2xl font-bold text-trustqr-navy">{feedbackData.totalResponses}</p>
+                <p className="text-2xl font-bold text-foreground">{feedbackData.totalResponses}</p>
               </div>
               <div className="text-2xl">📊</div>
             </div>
           </CardContent>
         </Card>
 
-        <Card>
+        <Card className="trustqr-card">
           <CardContent className="p-6">
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-sm font-medium text-muted-foreground">Average Rating</p>
-                <p className="text-2xl font-bold text-trustqr-navy">{feedbackData.averageRating}/5</p>
+                <p className="text-2xl font-bold text-foreground">{feedbackData.averageRating}/5</p>
               </div>
               <div className="text-2xl">⭐</div>
             </div>
           </CardContent>
         </Card>
 
-        <Card>
+        <Card className="trustqr-card">
           <CardContent className="p-6">
             <div className="flex items-center justify-between">
               <div>
@@ -104,7 +115,7 @@ const FeedbackAnalysis = () => {
       </div>
 
       {/* Sentiment Analysis */}
-      <Card>
+      <Card className="trustqr-card">
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
             🧠 AI Sentiment Analysis
@@ -143,14 +154,14 @@ const FeedbackAnalysis = () => {
       </Card>
 
       {/* Recent Feedback */}
-      <Card>
+      <Card className="trustqr-card">
         <CardHeader>
           <CardTitle>Recent Feedback</CardTitle>
           <CardDescription>Latest customer responses</CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
           {feedbackData.recentFeedback.map((feedback) => (
-            <div key={feedback.id} className="p-4 border rounded-lg bg-card/50">
+            <div key={feedback.id} className="p-4 border border-border rounded-lg bg-card/50">
               <div className="flex items-start justify-between mb-2">
                 <div className="flex items-center gap-2">
                   <span className="font-medium text-sm">{feedback.customerName}</span>
@@ -170,7 +181,7 @@ const FeedbackAnalysis = () => {
       </Card>
 
       {/* AI Suggestions */}
-      <Card>
+      <Card className="trustqr-card">
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
             💡 AI Improvement Suggestions
@@ -182,9 +193,9 @@ const FeedbackAnalysis = () => {
         <CardContent>
           <div className="space-y-3">
             {feedbackData.suggestions.map((suggestion, index) => (
-              <div key={index} className="flex items-start gap-3 p-3 bg-trustqr-light-emerald/30 rounded-lg">
+              <div key={index} className="flex items-start gap-3 p-3 bg-accent/10 rounded-lg">
                 <div className="w-6 h-6 rounded-full bg-accent flex items-center justify-center flex-shrink-0 mt-0.5">
-                  <span className="text-xs font-bold text-white">{index + 1}</span>
+                  <span className="text-xs font-bold text-background">{index + 1}</span>
                 </div>
                 <p className="text-sm text-foreground">{suggestion}</p>
               </div>

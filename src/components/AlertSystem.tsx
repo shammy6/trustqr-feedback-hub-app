@@ -3,18 +3,21 @@ import { useState, useEffect } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { Bell, AlertTriangle, Mail, Eye, X } from 'lucide-react';
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { Bell, AlertTriangle, Mail, Eye, EyeOff, X } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 
 interface Alert {
   id: string;
   type: 'low_rating' | 'complaint' | 'urgent';
   customerName: string;
+  customerEmail: string;
   rating: number;
   feedback: string;
   timestamp: string;
   isRead: boolean;
   severity: 'high' | 'medium' | 'low';
+  reviewDate: string;
 }
 
 const AlertSystem = () => {
@@ -22,30 +25,36 @@ const AlertSystem = () => {
     {
       id: '1',
       type: 'low_rating',
-      customerName: 'John D.',
+      customerName: 'John Davis',
+      customerEmail: 'john.davis@email.com',
       rating: 2,
       feedback: 'Service was extremely slow and the food was cold when it arrived.',
       timestamp: '5 minutes ago',
+      reviewDate: '2024-06-18 14:30:00',
       isRead: false,
       severity: 'high'
     },
     {
       id: '2',
       type: 'complaint',
-      customerName: 'Sarah M.',
+      customerName: 'Sarah Mitchell',
+      customerEmail: 'sarah.mitchell@email.com',
       rating: 1,
       feedback: 'Very disappointed with the cleanliness of the restaurant.',
       timestamp: '2 hours ago',
+      reviewDate: '2024-06-18 12:15:00',
       isRead: false,
       severity: 'high'
     },
     {
       id: '3',
       type: 'low_rating',
-      customerName: 'Mike R.',
+      customerName: 'Mike Rodriguez',
+      customerEmail: 'mike.rodriguez@email.com',
       rating: 3,
       feedback: 'Average experience, nothing special.',
       timestamp: '1 day ago',
+      reviewDate: '2024-06-17 19:45:00',
       isRead: true,
       severity: 'medium'
     }
@@ -53,6 +62,11 @@ const AlertSystem = () => {
 
   const { toast } = useToast();
   const unreadAlerts = alerts.filter(alert => !alert.isRead);
+  
+  const [showEmailModal, setShowEmailModal] = useState(false);
+  const [showDetailsModal, setShowDetailsModal] = useState(false);
+  const [selectedAlert, setSelectedAlert] = useState<Alert | null>(null);
+  const [revealedNames, setRevealedNames] = useState<Set<string>>(new Set());
 
   const markAsRead = (alertId: string) => {
     setAlerts(alerts.map(alert => 
@@ -68,11 +82,24 @@ const AlertSystem = () => {
     setAlerts(alerts.filter(alert => alert.id !== alertId));
   };
 
-  const sendEmailAlert = (alert: Alert) => {
-    toast({
-      title: "Email sent!",
-      description: `Alert forwarded to management team about ${alert.customerName}'s feedback.`
-    });
+  const showCustomerEmail = (alert: Alert) => {
+    setSelectedAlert(alert);
+    setShowEmailModal(true);
+  };
+
+  const showAlertDetails = (alert: Alert) => {
+    setSelectedAlert(alert);
+    setShowDetailsModal(true);
+  };
+
+  const toggleNameReveal = (alertId: string) => {
+    const newRevealed = new Set(revealedNames);
+    if (newRevealed.has(alertId)) {
+      newRevealed.delete(alertId);
+    } else {
+      newRevealed.add(alertId);
+    }
+    setRevealedNames(newRevealed);
   };
 
   const getSeverityColor = (severity: string) => {
@@ -91,6 +118,17 @@ const AlertSystem = () => {
     }
   };
 
+  const formatReviewDate = (dateString: string) => {
+    const date = new Date(dateString);
+    return date.toLocaleString('en-US', {
+      year: 'numeric',
+      month: 'long',
+      day: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit'
+    });
+  };
+
   // Simulate real-time alerts
   useEffect(() => {
     const interval = setInterval(() => {
@@ -100,9 +138,11 @@ const AlertSystem = () => {
           id: Date.now().toString(),
           type: 'low_rating',
           customerName: 'Anonymous Customer',
+          customerEmail: 'anonymous@email.com',
           rating: Math.floor(Math.random() * 3) + 1,
           feedback: 'New feedback requiring attention...',
           timestamp: 'Just now',
+          reviewDate: new Date().toISOString(),
           isRead: false,
           severity: 'high'
         };
@@ -170,7 +210,7 @@ const AlertSystem = () => {
                     </div>
                     <div className="min-w-0 flex-1">
                       <CardTitle className="text-lg truncate">
-                        {alert.customerName} - {alert.rating} Star Review
+                        {revealedNames.has(alert.id) ? alert.customerName : `${alert.customerName.split(' ')[0]} ${alert.customerName.split(' ')[1]?.[0] || ''}.`} - {alert.rating} Star Review
                       </CardTitle>
                       <CardDescription className="flex flex-col sm:flex-row sm:items-center gap-2">
                         <span>{alert.timestamp}</span>
@@ -182,20 +222,18 @@ const AlertSystem = () => {
                   </div>
                   
                   <div className="flex items-center gap-1 flex-shrink-0">
-                    {!alert.isRead && (
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => markAsRead(alert.id)}
-                        className="h-8 w-8 p-0"
-                      >
-                        <Eye className="w-4 h-4" />
-                      </Button>
-                    )}
                     <Button
                       variant="ghost"
                       size="sm"
-                      onClick={() => sendEmailAlert(alert)}
+                      onClick={() => toggleNameReveal(alert.id)}
+                      className="h-8 w-8 p-0"
+                    >
+                      {revealedNames.has(alert.id) ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                    </Button>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => showCustomerEmail(alert)}
                       className="h-8 w-8 p-0"
                     >
                       <Mail className="w-4 h-4" />
@@ -220,15 +258,10 @@ const AlertSystem = () => {
                   <Button 
                     size="sm" 
                     variant="outline"
+                    onClick={() => showAlertDetails(alert)}
                     className="border-border w-full sm:w-auto"
                   >
                     View Details
-                  </Button>
-                  <Button 
-                    size="sm" 
-                    className="trustqr-emerald-gradient text-white hover:opacity-90 w-full sm:w-auto"
-                  >
-                    Respond to Customer
                   </Button>
                 </div>
               </CardContent>
@@ -236,6 +269,60 @@ const AlertSystem = () => {
           ))}
         </div>
       )}
+
+      {/* Email Modal */}
+      <Dialog open={showEmailModal} onOpenChange={setShowEmailModal}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>Customer Email</DialogTitle>
+          </DialogHeader>
+          <div className="flex items-center space-x-2 p-4 bg-muted/30 rounded-lg">
+            <Mail className="w-5 h-5 text-muted-foreground" />
+            <span className="text-sm font-mono">{selectedAlert?.customerEmail}</span>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Details Modal */}
+      <Dialog open={showDetailsModal} onOpenChange={setShowDetailsModal}>
+        <DialogContent className="sm:max-w-lg">
+          <DialogHeader>
+            <DialogTitle>Review Details</DialogTitle>
+          </DialogHeader>
+          {selectedAlert && (
+            <div className="space-y-4">
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="text-sm font-medium text-muted-foreground">Customer Name</label>
+                  <p className="text-sm font-semibold">{selectedAlert.customerName}</p>
+                </div>
+                <div>
+                  <label className="text-sm font-medium text-muted-foreground">Email</label>
+                  <p className="text-sm font-mono">{selectedAlert.customerEmail}</p>
+                </div>
+              </div>
+              
+              <div>
+                <label className="text-sm font-medium text-muted-foreground">Review Content</label>
+                <div className="bg-muted/30 p-3 rounded-lg mt-1">
+                  <p className="text-sm">{selectedAlert.feedback}</p>
+                </div>
+              </div>
+              
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="text-sm font-medium text-muted-foreground">Rating</label>
+                  <p className="text-sm font-semibold">{selectedAlert.rating} stars</p>
+                </div>
+                <div>
+                  <label className="text-sm font-medium text-muted-foreground">Date & Time</label>
+                  <p className="text-sm">{formatReviewDate(selectedAlert.reviewDate)}</p>
+                </div>
+              </div>
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };

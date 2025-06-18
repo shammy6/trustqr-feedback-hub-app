@@ -11,13 +11,6 @@ const Home = () => {
 
   return (
     <div className="space-y-6">
-      <div className="mb-8">
-        <h2 className="text-3xl font-bold text-foreground mb-2">Welcome to TrustQR</h2>
-        <p className="text-muted-foreground">
-          Generate QR codes and analyze your customer feedback
-        </p>
-      </div>
-
       <Tabs value={activeHomeTab} onValueChange={setActiveHomeTab} className="w-full">
         <TabsList className="grid w-full grid-cols-3 mb-8">
           <TabsTrigger value="qr-generator" className="flex items-center gap-2">

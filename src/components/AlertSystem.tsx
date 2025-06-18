@@ -122,7 +122,7 @@ const AlertSystem = () => {
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between mb-8">
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-8">
         <div>
           <h2 className="text-2xl font-bold text-foreground mb-2">Alert Center</h2>
           <p className="text-muted-foreground">
@@ -130,17 +130,17 @@ const AlertSystem = () => {
           </p>
         </div>
         
-        <div className="flex items-center gap-3">
-          <Badge variant="outline" className="flex items-center gap-2">
+        <div className="flex items-center justify-between sm:justify-end gap-3">
+          <Badge variant="outline" className="flex items-center gap-2 justify-center min-w-[120px]">
             <Bell className="w-4 h-4" />
-            {unreadAlerts.length} unread
+            <span className="whitespace-nowrap">{unreadAlerts.length} unread</span>
           </Badge>
           {unreadAlerts.length > 0 && (
             <Button 
               variant="outline" 
               size="sm"
               onClick={markAllAsRead}
-              className="border-border"
+              className="border-border whitespace-nowrap"
             >
               Mark all as read
             </Button>
@@ -163,25 +163,25 @@ const AlertSystem = () => {
           {alerts.map((alert) => (
             <Card key={alert.id} className={`trustqr-card ${!alert.isRead ? 'border-l-4 border-l-accent' : ''}`}>
               <CardHeader className="pb-3">
-                <div className="flex items-start justify-between">
-                  <div className="flex items-center gap-3">
-                    <div className={`p-2 rounded-full ${getSeverityColor(alert.severity)}`}>
+                <div className="flex items-start justify-between gap-4">
+                  <div className="flex items-center gap-3 flex-1 min-w-0">
+                    <div className={`p-2 rounded-full flex-shrink-0 ${getSeverityColor(alert.severity)}`}>
                       {getAlertIcon(alert.type)}
                     </div>
-                    <div>
-                      <CardTitle className="text-lg">
+                    <div className="min-w-0 flex-1">
+                      <CardTitle className="text-lg truncate">
                         {alert.customerName} - {alert.rating} Star Review
                       </CardTitle>
-                      <CardDescription className="flex items-center gap-2">
+                      <CardDescription className="flex flex-col sm:flex-row sm:items-center gap-2">
                         <span>{alert.timestamp}</span>
-                        <Badge variant="outline" className={getSeverityColor(alert.severity)}>
+                        <Badge variant="outline" className={`${getSeverityColor(alert.severity)} w-fit`}>
                           {alert.severity} priority
                         </Badge>
                       </CardDescription>
                     </div>
                   </div>
                   
-                  <div className="flex items-center gap-2">
+                  <div className="flex items-center gap-1 flex-shrink-0">
                     {!alert.isRead && (
                       <Button
                         variant="ghost"
@@ -212,21 +212,21 @@ const AlertSystem = () => {
                 </div>
               </CardHeader>
               <CardContent>
-                <div className="bg-muted/30 p-4 rounded-lg">
-                  <p className="text-sm text-foreground">"{alert.feedback}"</p>
+                <div className="bg-muted/30 p-4 rounded-lg mb-4">
+                  <p className="text-sm text-foreground break-words">{alert.feedback}</p>
                 </div>
                 
-                <div className="flex items-center gap-2 mt-4">
+                <div className="flex flex-col sm:flex-row items-start sm:items-center gap-2">
                   <Button 
                     size="sm" 
                     variant="outline"
-                    className="border-border"
+                    className="border-border w-full sm:w-auto"
                   >
                     View Details
                   </Button>
                   <Button 
                     size="sm" 
-                    className="trustqr-emerald-gradient text-white hover:opacity-90"
+                    className="trustqr-emerald-gradient text-white hover:opacity-90 w-full sm:w-auto"
                   >
                     Respond to Customer
                   </Button>

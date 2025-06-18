@@ -39,7 +39,7 @@ const Analytics = () => {
 
   return (
     <div className="space-y-6">
-      <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 mb-8">
+      <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4 mb-8">
         <div>
           <h2 className="text-2xl font-bold text-foreground mb-2">Analytics Dashboard</h2>
           <p className="text-muted-foreground">
@@ -47,9 +47,9 @@ const Analytics = () => {
           </p>
         </div>
         
-        <div className="flex flex-col sm:flex-row gap-3">
+        <div className="flex flex-row gap-3 w-full sm:w-auto">
           <Select value={timeRange} onValueChange={setTimeRange}>
-            <SelectTrigger className="w-[150px] bg-input border-border">
+            <SelectTrigger className="flex-1 sm:w-[150px] bg-input border-border">
               <SelectValue placeholder="Time range" />
             </SelectTrigger>
             <SelectContent className="bg-popover">
@@ -60,8 +60,8 @@ const Analytics = () => {
           </Select>
           
           <Select value={feedbackType} onValueChange={setFeedbackType}>
-            <SelectTrigger className="w-[150px] bg-input border-border">
-              <SelectValue placeholder="Feedback type" />
+            <SelectTrigger className="flex-1 sm:w-[150px] bg-input border-border">
+              <SelectValue placeholder="All Types" />
             </SelectTrigger>
             <SelectContent className="bg-popover">
               <SelectItem value="all">All Types</SelectItem>

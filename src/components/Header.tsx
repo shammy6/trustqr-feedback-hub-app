@@ -24,6 +24,10 @@ const Header = ({ activeTab, onTabChange }: HeaderProps) => {
     onTabChange('generator');
   };
 
+  const handleNavClick = (tab: string) => {
+    onTabChange(tab);
+  };
+
   return (
     <header className="bg-card border-b border-border sticky top-0 z-50">
       <div className="container mx-auto px-4 sm:px-6 py-4">
@@ -45,7 +49,7 @@ const Header = ({ activeTab, onTabChange }: HeaderProps) => {
             {/* Desktop Navigation */}
             <nav className="hidden lg:flex items-center space-x-6">
               <button
-                onClick={() => onTabChange('generator')}
+                onClick={() => handleNavClick('generator')}
                 className={`text-sm font-medium transition-colors px-3 py-2 rounded-md ${
                   activeTab === 'generator' 
                     ? 'bg-accent text-accent-foreground' 
@@ -55,7 +59,7 @@ const Header = ({ activeTab, onTabChange }: HeaderProps) => {
                 QR Generator
               </button>
               <button
-                onClick={() => onTabChange('analysis')}
+                onClick={() => handleNavClick('analysis')}
                 className={`text-sm font-medium transition-colors px-3 py-2 rounded-md ${
                   activeTab === 'analysis' 
                     ? 'bg-accent text-accent-foreground' 
@@ -65,7 +69,7 @@ const Header = ({ activeTab, onTabChange }: HeaderProps) => {
                 AI Analysis
               </button>
               <button
-                onClick={() => onTabChange('analytics')}
+                onClick={() => handleNavClick('analytics')}
                 className={`text-sm font-medium transition-colors px-3 py-2 rounded-md ${
                   activeTab === 'analytics' 
                     ? 'bg-accent text-accent-foreground' 
@@ -86,7 +90,7 @@ const Header = ({ activeTab, onTabChange }: HeaderProps) => {
               className="relative"
             >
               <Bell className="w-5 h-5" />
-              <Badge variant="destructive" className="absolute -top-1 -right-1 h-5 w-5 p-0 text-xs">
+              <Badge variant="destructive" className="absolute -top-1 -right-1 h-5 w-5 p-0 text-xs flex items-center justify-center">
                 2
               </Badge>
             </Button>
@@ -142,7 +146,7 @@ const Header = ({ activeTab, onTabChange }: HeaderProps) => {
         <div className="lg:hidden mt-4 border-t border-border pt-4">
           <div className="flex space-x-4 overflow-x-auto">
             <button
-              onClick={() => onTabChange('generator')}
+              onClick={() => handleNavClick('generator')}
               className={`text-sm font-medium transition-colors px-3 py-2 rounded-md whitespace-nowrap ${
                 activeTab === 'generator' 
                   ? 'bg-accent text-accent-foreground' 
@@ -152,7 +156,7 @@ const Header = ({ activeTab, onTabChange }: HeaderProps) => {
               QR Generator
             </button>
             <button
-              onClick={() => onTabChange('analysis')}
+              onClick={() => handleNavClick('analysis')}
               className={`text-sm font-medium transition-colors px-3 py-2 rounded-md whitespace-nowrap ${
                 activeTab === 'analysis' 
                   ? 'bg-accent text-accent-foreground' 
@@ -162,7 +166,7 @@ const Header = ({ activeTab, onTabChange }: HeaderProps) => {
               AI Analysis
             </button>
             <button
-              onClick={() => onTabChange('analytics')}
+              onClick={() => handleNavClick('analytics')}
               className={`text-sm font-medium transition-colors px-3 py-2 rounded-md whitespace-nowrap ${
                 activeTab === 'analytics' 
                   ? 'bg-accent text-accent-foreground' 

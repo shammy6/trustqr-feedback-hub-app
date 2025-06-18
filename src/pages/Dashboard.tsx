@@ -7,7 +7,7 @@ import Settings from "@/components/Settings";
 import IntroAnimation from "@/components/IntroAnimation";
 
 const Dashboard = () => {
-  const [activeTab, setActiveTab] = useState("home");
+  const [activeTab, setActiveTab] = useState("generator");
   const [showIntro, setShowIntro] = useState(() => {
     const hasSeenIntro = sessionStorage.getItem('hasSeenTrustQRIntro');
     return !hasSeenIntro;
@@ -20,17 +20,16 @@ const Dashboard = () => {
 
   const renderContent = () => {
     switch (activeTab) {
-      case "home":
       case "generator":
       case "analysis":
       case "analytics":
-        return <Home />;
+        return <Home activeTab={activeTab} />;
       case "alerts":
         return <AlertSystem />;
       case "settings":
         return <Settings />;
       default:
-        return <Home />;
+        return <Home activeTab="generator" />;
     }
   };
 

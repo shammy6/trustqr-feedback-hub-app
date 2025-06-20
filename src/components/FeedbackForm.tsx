@@ -1,3 +1,4 @@
+
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -5,6 +6,7 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
+import { Skeleton } from "@/components/ui/skeleton";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "./auth/AuthProvider";
 import { analyzeSentiment } from "@/utils/sentimentAnalyzer";
@@ -18,10 +20,11 @@ const FeedbackForm = () => {
     wouldRecommend: ""
   });
   const [isSubmitted, setIsSubmitted] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
   const { toast } = useToast();
   const { user } = useAuth();
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
     if (!formData.rating || !formData.feedback) {
@@ -32,6 +35,11 @@ const FeedbackForm = () => {
       });
       return;
     }
+
+    setIsSubmitting(true);
+
+    // Simulate loading for better UX
+    await new Promise(resolve => setTimeout(resolve, 800));
 
     const rating = parseInt(formData.rating);
     
@@ -69,8 +77,13 @@ const FeedbackForm = () => {
       
       existingAlerts.unshift(newAlert);
       localStorage.setItem('feedbackAlerts', JSON.stringify(existingAlerts));
+      
+      // Trigger a custom event to notify AlertSystem immediately
+      window.dispatchEvent(new CustomEvent('newFeedbackAlert', { detail: newAlert }));
     }
     
+    setIsSubmitting(false);
+
     if (rating >= 4) {
       // Redirect to Google Reviews
       const reviewPageLink = user?.reviewPageLink;
@@ -112,7 +125,7 @@ const FeedbackForm = () => {
         key={i}
         type="button"
         onClick={() => setFormData({ ...formData, rating: (i + 1).toString() })}
-        className={`text-2xl transition-colors ${
+        className={`text-2xl transition-all duration-200 transform hover:scale-110 ${
           i < rating ? "text-yellow-400" : "text-gray-500 hover:text-yellow-200"
         }`}
       >
@@ -121,12 +134,35 @@ const FeedbackForm = () => {
     ));
   };
 
+  if (isSubmitting) {
+    return (
+      <div className="min-h-screen bg-background flex items-center justify-center p-4">
+        <Card className="w-full max-w-md trustqr-card animate-fade-in">
+          <CardContent className="p-8 text-center">
+            <div className="w-16 h-16 mx-auto mb-4 rounded-full trustqr-gradient flex items-center justify-center animate-pulse">
+              <img 
+                src="/lovable-uploads/0de82d5c-c0ee-4561-882e-764c460eea3f.png" 
+                alt="TrustQR Logo" 
+                className="w-8 h-8 object-contain"
+              />
+            </div>
+            <h3 className="text-lg font-semibold mb-4">Processing your feedback...</h3>
+            <div className="space-y-3">
+              <Skeleton className="h-4 w-3/4 mx-auto" />
+              <Skeleton className="h-4 w-1/2 mx-auto" />
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
+
   if (isSubmitted) {
     return (
       <div className="min-h-screen bg-background flex items-center justify-center p-4">
-        <Card className="w-full max-w-md trustqr-card">
+        <Card className="w-full max-w-md trustqr-card animate-fade-in">
           <CardHeader className="text-center">
-            <div className="w-16 h-16 mx-auto mb-4 rounded-full bg-red-500/20 flex items-center justify-center">
+            <div className="w-16 h-16 mx-auto mb-4 rounded-full bg-red-500/20 flex items-center justify-center animate-scale-in">
               <span className="text-2xl">😞</span>
             </div>
             <CardTitle className="text-xl text-red-400">We're Sorry!</CardTitle>
@@ -142,18 +178,18 @@ const FeedbackForm = () => {
               <Textarea
                 id="additionalFeedback"
                 placeholder="Your detailed feedback helps us improve..."
-                className="min-h-[100px] bg-input border-border"
+                className="min-h-[100px] bg-input border-border transition-all duration-200 focus:ring-2 focus:ring-accent"
               />
             </div>
             
             <Button 
               onClick={handleAdditionalFeedbackSubmit}
-              className="w-full trustqr-emerald-gradient text-white hover:opacity-90"
+              className="w-full trustqr-emerald-gradient text-white hover:opacity-90 transition-all duration-200 hover:scale-105"
             >
               Submit Additional Feedback
             </Button>
             
-            <div className="text-center text-sm text-muted-foreground">
+            <div className="text-center text-sm text-muted-foreground animate-fade-in">
               <p>A manager will review your feedback and may contact you directly.</p>
             </div>
           </CardContent>
@@ -164,9 +200,9 @@ const FeedbackForm = () => {
 
   return (
     <div className="min-h-screen bg-background flex items-center justify-center p-4">
-      <Card className="w-full max-w-md trustqr-card">
+      <Card className="w-full max-w-md trustqr-card animate-fade-in">
         <CardHeader className="text-center">
-          <div className="w-12 h-12 mx-auto mb-4 rounded-full trustqr-gradient flex items-center justify-center">
+          <div className="w-12 h-12 mx-auto mb-4 rounded-full trustqr-gradient flex items-center justify-center animate-scale-in">
             <img 
               src="/lovable-uploads/0de82d5c-c0ee-4561-882e-764c460eea3f.png" 
               alt="TrustQR Logo" 
@@ -189,7 +225,7 @@ const FeedbackForm = () => {
                 placeholder="Enter your name"
                 value={formData.customerName}
                 onChange={(e) => setFormData({ ...formData, customerName: e.target.value })}
-                className="bg-input border-border"
+                className="bg-input border-border transition-all duration-200 focus:ring-2 focus:ring-accent"
               />
             </div>
 
@@ -203,7 +239,7 @@ const FeedbackForm = () => {
                 placeholder="Enter your email"
                 value={formData.customerEmail}
                 onChange={(e) => setFormData({ ...formData, customerEmail: e.target.value })}
-                className="bg-input border-border"
+                className="bg-input border-border transition-all duration-200 focus:ring-2 focus:ring-accent"
               />
             </div>
 
@@ -226,7 +262,7 @@ const FeedbackForm = () => {
                 placeholder="What did you think about our service?"
                 value={formData.feedback}
                 onChange={(e) => setFormData({ ...formData, feedback: e.target.value })}
-                className="min-h-[100px] bg-input border-border"
+                className="min-h-[100px] bg-input border-border transition-all duration-200 focus:ring-2 focus:ring-accent"
                 required
               />
             </div>
@@ -236,16 +272,17 @@ const FeedbackForm = () => {
               <RadioGroup 
                 value={formData.wouldRecommend} 
                 onValueChange={(value) => setFormData({ ...formData, wouldRecommend: value })}
+                className="space-y-2"
               >
-                <div className="flex items-center space-x-2">
+                <div className="flex items-center space-x-2 transition-all duration-200 hover:bg-muted/30 p-2 rounded">
                   <RadioGroupItem value="yes" id="recommend-yes" />
                   <Label htmlFor="recommend-yes">Yes, absolutely!</Label>
                 </div>
-                <div className="flex items-center space-x-2">
+                <div className="flex items-center space-x-2 transition-all duration-200 hover:bg-muted/30 p-2 rounded">
                   <RadioGroupItem value="maybe" id="recommend-maybe" />
                   <Label htmlFor="recommend-maybe">Maybe</Label>
                 </div>
-                <div className="flex items-center space-x-2">
+                <div className="flex items-center space-x-2 transition-all duration-200 hover:bg-muted/30 p-2 rounded">
                   <RadioGroupItem value="no" id="recommend-no" />
                   <Label htmlFor="recommend-no">No, probably not</Label>
                 </div>
@@ -254,7 +291,8 @@ const FeedbackForm = () => {
 
             <Button 
               type="submit" 
-              className="w-full trustqr-emerald-gradient text-white hover:opacity-90"
+              className="w-full trustqr-emerald-gradient text-white hover:opacity-90 transition-all duration-200 hover:scale-105"
+              disabled={isSubmitting}
             >
               Submit Feedback
             </Button>

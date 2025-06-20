@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -35,8 +36,9 @@ const AlertSystem = () => {
   const [showDetailsModal, setShowDetailsModal] = useState(false);
   const [selectedAlert, setSelectedAlert] = useState<Alert | null>(null);
   const [revealedNames, setRevealedNames] = useState<Set<string>>(new Set());
+  const [newAlertIds, setNewAlertIds] = useState<Set<string>>(new Set());
 
-  // Load alerts from localStorage and set up polling
+  // Load alerts from localStorage and set up real-time listening
   useEffect(() => {
     const loadAlerts = () => {
       const storedAlerts = JSON.parse(localStorage.getItem('feedbackAlerts') || '[]');
@@ -82,10 +84,42 @@ const AlertSystem = () => {
       setAlerts(allAlerts);
     };
 
+    // Listen for new feedback alerts
+    const handleNewAlert = (event: CustomEvent) => {
+      const newAlert = event.detail;
+      setAlerts(prev => [newAlert, ...prev]);
+      setNewAlertIds(prev => new Set([...prev, newAlert.id]));
+      
+      // Show toast notification for new alert
+      toast({
+        title: "New Feedback Alert",
+        description: `${newAlert.customerName} left a ${newAlert.rating}-star review`,
+        variant: newAlert.rating <= 2 ? "destructive" : "default"
+      });
+
+      // Remove the "new" indicator after 5 seconds
+      setTimeout(() => {
+        setNewAlertIds(prev => {
+          const updated = new Set(prev);
+          updated.delete(newAlert.id);
+          return updated;
+        });
+      }, 5000);
+    };
+
     loadAlerts();
-    const interval = setInterval(loadAlerts, 2000);
-    return () => clearInterval(interval);
-  }, []);
+    
+    // Set up event listener for real-time alerts
+    window.addEventListener('newFeedbackAlert', handleNewAlert as EventListener);
+    
+    // Still poll as backup
+    const interval = setInterval(loadAlerts, 5000);
+    
+    return () => {
+      clearInterval(interval);
+      window.removeEventListener('newFeedbackAlert', handleNewAlert as EventListener);
+    };
+  }, [toast]);
 
   // Sort alerts based on selected criteria
   const sortedAlerts = [...alerts].sort((a, b) => {
@@ -190,7 +224,7 @@ const AlertSystem = () => {
   };
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 animate-fade-in">
       <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4 mb-8">
         <div>
           <h2 className="text-2xl font-bold text-foreground mb-2">Alert Center</h2>
@@ -201,17 +235,17 @@ const AlertSystem = () => {
         
         <div className="flex items-center justify-between lg:justify-end gap-3 flex-wrap">
           <Select value={sortBy} onValueChange={(value: 'timestamp' | 'sentiment' | 'severity') => setSortBy(value)}>
-            <SelectTrigger className="w-[140px] bg-input border-border">
+            <SelectTrigger className="w-[140px] bg-input border-border transition-all duration-200 hover:bg-muted/50">
               <SelectValue placeholder="Sort by" />
             </SelectTrigger>
-            <SelectContent className="bg-popover">
+            <SelectContent className="bg-popover animate-fade-in">
               <SelectItem value="timestamp">Most Recent</SelectItem>
               <SelectItem value="sentiment">Sentiment</SelectItem>
               <SelectItem value="severity">Severity</SelectItem>
             </SelectContent>
           </Select>
           
-          <Badge variant="outline" className="flex items-center gap-2 justify-center min-w-[120px]">
+          <Badge variant="outline" className="flex items-center gap-2 justify-center min-w-[120px] transition-all duration-200 hover:bg-accent/10">
             <Bell className="w-4 h-4" />
             <span className="whitespace-nowrap">{unreadAlerts.length} unread</span>
           </Badge>
@@ -221,7 +255,7 @@ const AlertSystem = () => {
               variant="outline" 
               size="sm"
               onClick={markAllAsRead}
-              className="border-border whitespace-nowrap"
+              className="border-border whitespace-nowrap transition-all duration-200 hover:scale-105"
             >
               Mark all as read
             </Button>
@@ -230,9 +264,9 @@ const AlertSystem = () => {
       </div>
 
       {alerts.length === 0 ? (
-        <Card className="trustqr-card">
+        <Card className="trustqr-card animate-fade-in">
           <CardContent className="p-12 text-center">
-            <Bell className="w-12 h-12 text-muted-foreground mx-auto mb-4" />
+            <Bell className="w-12 h-12 text-muted-foreground mx-auto mb-4 animate-pulse" />
             <h3 className="text-lg font-semibold text-foreground mb-2">No alerts</h3>
             <p className="text-muted-foreground">
               All feedback is looking good! New alerts will appear here when customers leave low ratings.
@@ -241,12 +275,18 @@ const AlertSystem = () => {
         </Card>
       ) : (
         <div className="space-y-4">
-          {sortedAlerts.map((alert) => (
-            <Card key={alert.id} className={`trustqr-card ${!alert.isRead ? 'border-l-4 border-l-accent' : ''}`}>
+          {sortedAlerts.map((alert, index) => (
+            <Card 
+              key={alert.id} 
+              className={`trustqr-card transition-all duration-300 hover:shadow-lg animate-fade-in ${
+                !alert.isRead ? 'border-l-4 border-l-accent' : ''
+              } ${newAlertIds.has(alert.id) ? 'ring-2 ring-accent animate-pulse' : ''}`}
+              style={{ animationDelay: `${index * 100}ms` }}
+            >
               <CardHeader className="pb-3">
                 <div className="flex items-start justify-between gap-4">
                   <div className="flex items-center gap-3 flex-1 min-w-0">
-                    <div className={`p-2 rounded-full flex-shrink-0 ${getSeverityColor(alert.severity)}`}>
+                    <div className={`p-2 rounded-full flex-shrink-0 transition-all duration-200 ${getSeverityColor(alert.severity)}`}>
                       {getAlertIcon(alert.type)}
                     </div>
                     <div className="min-w-0 flex-1">
@@ -256,13 +296,16 @@ const AlertSystem = () => {
                       <CardDescription className="flex flex-col sm:flex-row sm:items-center gap-2">
                         <span>{alert.timestamp}</span>
                         <div className="flex gap-2 flex-wrap">
-                          <Badge variant="outline" className={`${getSeverityColor(alert.severity)} w-fit`}>
+                          <Badge variant="outline" className={`${getSeverityColor(alert.severity)} w-fit transition-all duration-200`}>
                             {alert.severity} priority
                           </Badge>
                           {alert.sentiment && (
-                            <Badge variant="outline" className={`${getSentimentColor(alert.sentiment)} w-fit`}>
+                            <Badge variant="outline" className={`${getSentimentColor(alert.sentiment)} w-fit transition-all duration-200`}>
                               {alert.sentimentEmoji} {alert.sentiment}
                             </Badge>
+                          )}
+                          {newAlertIds.has(alert.id) && (
+                            <Badge className="bg-accent text-accent-foreground animate-pulse">NEW</Badge>
                           )}
                         </div>
                       </CardDescription>
@@ -274,7 +317,7 @@ const AlertSystem = () => {
                       variant="ghost"
                       size="sm"
                       onClick={() => toggleNameReveal(alert.id)}
-                      className="h-8 w-8 p-0"
+                      className="h-8 w-8 p-0 transition-all duration-200 hover:scale-110"
                     >
                       {revealedNames.has(alert.id) ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
                     </Button>
@@ -282,7 +325,7 @@ const AlertSystem = () => {
                       variant="ghost"
                       size="sm"
                       onClick={() => showCustomerEmail(alert)}
-                      className="h-8 w-8 p-0"
+                      className="h-8 w-8 p-0 transition-all duration-200 hover:scale-110"
                     >
                       <Mail className="w-4 h-4" />
                     </Button>
@@ -290,7 +333,7 @@ const AlertSystem = () => {
                       variant="ghost"
                       size="sm"
                       onClick={() => deleteAlert(alert.id)}
-                      className="h-8 w-8 p-0 text-destructive hover:text-destructive"
+                      className="h-8 w-8 p-0 text-destructive hover:text-destructive transition-all duration-200 hover:scale-110"
                     >
                       <X className="w-4 h-4" />
                     </Button>
@@ -298,12 +341,12 @@ const AlertSystem = () => {
                 </div>
               </CardHeader>
               <CardContent>
-                <div className="bg-muted/30 p-4 rounded-lg mb-4">
+                <div className="bg-muted/30 p-4 rounded-lg mb-4 transition-all duration-200 hover:bg-muted/50">
                   <p className="text-sm text-foreground break-words">{alert.feedback}</p>
                 </div>
                 
                 {alert.sentimentSummary && (
-                  <div className="mb-4 p-3 bg-accent/10 rounded-lg">
+                  <div className="mb-4 p-3 bg-accent/10 rounded-lg transition-all duration-200 hover:bg-accent/20">
                     <p className="text-xs text-muted-foreground font-medium mb-1">AI Sentiment Analysis:</p>
                     <p className="text-sm text-foreground">{alert.sentimentSummary}</p>
                     {alert.sentimentConfidence && (
@@ -319,7 +362,7 @@ const AlertSystem = () => {
                     size="sm" 
                     variant="outline"
                     onClick={() => showAlertDetails(alert)}
-                    className="border-border w-full sm:w-auto"
+                    className="border-border w-full sm:w-auto transition-all duration-200 hover:scale-105"
                   >
                     View Details
                   </Button>
@@ -332,11 +375,11 @@ const AlertSystem = () => {
 
       {/* Email Modal */}
       <Dialog open={showEmailModal} onOpenChange={setShowEmailModal}>
-        <DialogContent className="sm:max-w-md">
+        <DialogContent className="sm:max-w-md animate-scale-in">
           <DialogHeader>
             <DialogTitle>Customer Email</DialogTitle>
           </DialogHeader>
-          <div className="flex items-center space-x-2 p-4 bg-muted/30 rounded-lg">
+          <div className="flex items-center space-x-2 p-4 bg-muted/30 rounded-lg transition-all duration-200 hover:bg-muted/50">
             <Mail className="w-5 h-5 text-muted-foreground" />
             <span className="text-sm font-mono">{selectedAlert?.customerEmail}</span>
           </div>
@@ -345,7 +388,7 @@ const AlertSystem = () => {
 
       {/* Details Modal */}
       <Dialog open={showDetailsModal} onOpenChange={setShowDetailsModal}>
-        <DialogContent className="sm:max-w-lg">
+        <DialogContent className="sm:max-w-lg animate-scale-in">
           <DialogHeader>
             <DialogTitle>Review Details</DialogTitle>
           </DialogHeader>
@@ -364,7 +407,7 @@ const AlertSystem = () => {
               
               <div>
                 <label className="text-sm font-medium text-muted-foreground">Review Content</label>
-                <div className="bg-muted/30 p-3 rounded-lg mt-1">
+                <div className="bg-muted/30 p-3 rounded-lg mt-1 transition-all duration-200 hover:bg-muted/50">
                   <p className="text-sm">{selectedAlert.feedback}</p>
                 </div>
               </div>
@@ -372,7 +415,7 @@ const AlertSystem = () => {
               {selectedAlert.sentiment && (
                 <div>
                   <label className="text-sm font-medium text-muted-foreground">AI Sentiment Analysis</label>
-                  <div className="bg-accent/10 p-3 rounded-lg mt-1">
+                  <div className="bg-accent/10 p-3 rounded-lg mt-1 transition-all duration-200 hover:bg-accent/20">
                     <div className="flex items-center gap-2 mb-2">
                       <span className="text-lg">{selectedAlert.sentimentEmoji}</span>
                       <Badge className={getSentimentColor(selectedAlert.sentiment)}>

@@ -1,8 +1,8 @@
-
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
-import { Brain, TrendingUp, TrendingDown, Lightbulb, Target } from "lucide-react";
+import { Brain, TrendingUp, TrendingDown, Lightbulb, Target, Zap } from "lucide-react";
+import { analyzeSentiment } from "@/utils/sentimentAnalyzer";
 
 const FeedbackAnalysis = () => {
   // Mock data for demonstration - in real app this would come from API
@@ -36,11 +36,17 @@ const FeedbackAnalysis = () => {
         customerName: "Emma L.",
         rating: 4,
         feedback: "Good coffee, nice atmosphere. Could improve the waiting time.",
-        sentiment: "neutral",
+        sentiment: "mixed",
         timestamp: "1 day ago"
       }
     ]
   };
+
+  // Analyze recent feedback with AI
+  const analyzedFeedback = feedbackData.recentFeedback.map(feedback => ({
+    ...feedback,
+    aiAnalysis: analyzeSentiment(feedback.feedback)
+  }));
 
   // Dynamic suggestions based on current performance
   const getSmartSuggestions = () => {
@@ -150,15 +156,58 @@ const FeedbackAnalysis = () => {
         </Card>
       </div>
 
-      {/* Sentiment Analysis */}
+      {/* AI Sentiment Analysis Engine */}
+      <Card className="trustqr-card">
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <Zap className="w-5 h-5" />
+            AI Sentiment Analysis Engine
+          </CardTitle>
+          <CardDescription>
+            Real-time sentiment analysis of customer feedback using advanced AI
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-6">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div className="text-center p-4 bg-green-500/10 rounded-lg border border-green-500/20">
+              <div className="text-3xl mb-2">😊</div>
+              <div className="text-2xl font-bold text-green-400">{feedbackData.sentiment.positive}%</div>
+              <div className="text-sm text-muted-foreground">Positive Sentiment</div>
+            </div>
+            <div className="text-center p-4 bg-yellow-500/10 rounded-lg border border-yellow-500/20">
+              <div className="text-3xl mb-2">😐</div>
+              <div className="text-2xl font-bold text-yellow-400">{feedbackData.sentiment.neutral}%</div>
+              <div className="text-sm text-muted-foreground">Mixed Sentiment</div>
+            </div>
+            <div className="text-center p-4 bg-red-500/10 rounded-lg border border-red-500/20">
+              <div className="text-3xl mb-2">😞</div>
+              <div className="text-2xl font-bold text-red-400">{feedbackData.sentiment.negative}%</div>
+              <div className="text-sm text-muted-foreground">Negative Sentiment</div>
+            </div>
+          </div>
+          
+          <div className="bg-accent/10 p-4 rounded-lg">
+            <h4 className="font-semibold mb-2 flex items-center gap-2">
+              <Brain className="w-4 h-4" />
+              How AI Sentiment Analysis Works
+            </h4>
+            <p className="text-sm text-muted-foreground">
+              Our AI analyzes keywords, context, and emotional indicators in customer feedback to automatically categorize sentiment. 
+              This helps you quickly identify satisfied customers (for review requests) and dissatisfied customers (for immediate attention).
+            </p>
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* Traditional Sentiment Analysis */}
       <Card className="trustqr-card">
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
             <Brain className="w-5 h-5" />
-            AI Sentiment Analysis
+            Sentiment Distribution
           </CardTitle>
           <CardDescription>
-            Automatic analysis of customer feedback sentiment
+            Breakdown of customer sentiment across all feedback
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
@@ -173,7 +222,7 @@ const FeedbackAnalysis = () => {
 
             <div className="flex items-center justify-between">
               <span className="text-sm font-medium flex items-center gap-2">
-                😐 Neutral
+                😐 Mixed
               </span>
               <span className="text-sm text-muted-foreground">{feedbackData.sentiment.neutral}%</span>
             </div>
@@ -210,28 +259,48 @@ const FeedbackAnalysis = () => {
         </CardContent>
       </Card>
 
-      {/* Recent Feedback */}
+      {/* Recent Feedback with AI Analysis */}
       <Card className="trustqr-card">
         <CardHeader>
-          <CardTitle>Recent Feedback</CardTitle>
-          <CardDescription>Latest customer responses</CardDescription>
+          <CardTitle className="flex items-center gap-2">
+            <Zap className="w-5 h-5" />
+            Recent Feedback with AI Analysis
+          </CardTitle>
+          <CardDescription>Latest customer responses analyzed by AI</CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
-          {feedbackData.recentFeedback.map((feedback) => (
+          {analyzedFeedback.map((feedback) => (
             <div key={feedback.id} className="p-4 border border-border rounded-lg bg-card/50">
-              <div className="flex flex-col sm:flex-row sm:items-start justify-between mb-2 gap-2">
-                <div className="flex items-center gap-2">
-                  <span className="font-medium text-sm">{feedback.customerName}</span>
-                  <Badge variant="outline" className={getSentimentColor(feedback.sentiment)}>
-                    {getSentimentEmoji(feedback.sentiment)} {feedback.sentiment}
-                  </Badge>
+              <div className="flex flex-col gap-3">
+                <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-2">
+                  <div className="flex items-center gap-2">
+                    <span className="font-medium text-sm">{feedback.customerName}</span>
+                    <Badge variant="outline" className={getSentimentColor(feedback.sentiment)}>
+                      {getSentimentEmoji(feedback.sentiment)} {feedback.sentiment}
+                    </Badge>
+                  </div>
+                  <div className="flex items-center gap-1">
+                    <span className="text-sm">{"⭐".repeat(feedback.rating)}</span>
+                    <span className="text-xs text-muted-foreground ml-2">{feedback.timestamp}</span>
+                  </div>
                 </div>
-                <div className="flex items-center gap-1">
-                  <span className="text-sm">{"⭐".repeat(feedback.rating)}</span>
-                  <span className="text-xs text-muted-foreground ml-2">{feedback.timestamp}</span>
+                
+                <p className="text-sm text-muted-foreground">{feedback.feedback}</p>
+                
+                <div className="bg-accent/10 p-3 rounded-lg border-l-4 border-accent">
+                  <div className="flex items-center gap-2 mb-2">
+                    <Brain className="w-4 h-4 text-accent" />
+                    <span className="text-xs font-medium text-accent">AI Analysis</span>
+                    <Badge variant="outline" className={getSentimentColor(feedback.aiAnalysis.sentiment)}>
+                      {feedback.aiAnalysis.emoji} {feedback.aiAnalysis.sentiment}
+                    </Badge>
+                    <span className="text-xs text-muted-foreground">
+                      {Math.round(feedback.aiAnalysis.confidence * 100)}% confidence
+                    </span>
+                  </div>
+                  <p className="text-sm text-foreground">{feedback.aiAnalysis.summary}</p>
                 </div>
               </div>
-              <p className="text-sm text-muted-foreground">{feedback.feedback}</p>
             </div>
           ))}
         </CardContent>
@@ -245,7 +314,7 @@ const FeedbackAnalysis = () => {
             Smart Improvement Suggestions
           </CardTitle>
           <CardDescription>
-            Personalized recommendations based on your current performance
+            Personalized recommendations based on sentiment analysis
           </CardDescription>
         </CardHeader>
         <CardContent>

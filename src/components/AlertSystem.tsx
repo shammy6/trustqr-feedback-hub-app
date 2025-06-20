@@ -1,9 +1,9 @@
-
 import { useState, useEffect } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Bell, AlertTriangle, Mail, Eye, EyeOff, X } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 
@@ -19,10 +19,15 @@ interface Alert {
   severity: 'high' | 'medium' | 'low';
   reviewDate: string;
   wouldRecommend?: string;
+  sentiment?: 'positive' | 'mixed' | 'negative';
+  sentimentEmoji?: string;
+  sentimentSummary?: string;
+  sentimentConfidence?: number;
 }
 
 const AlertSystem = () => {
   const [alerts, setAlerts] = useState<Alert[]>([]);
+  const [sortBy, setSortBy] = useState<'timestamp' | 'sentiment' | 'severity'>('timestamp');
   const { toast } = useToast();
   const unreadAlerts = alerts.filter(alert => !alert.isRead);
   
@@ -46,7 +51,11 @@ const AlertSystem = () => {
           timestamp: '5 minutes ago',
           reviewDate: '2024-06-18 14:30:00',
           isRead: false,
-          severity: 'high'
+          severity: 'high',
+          sentiment: 'negative',
+          sentimentEmoji: '😞',
+          sentimentSummary: 'Customer shows dissatisfaction with 3 negative indicators',
+          sentimentConfidence: 0.85
         },
         {
           id: 'default-2',
@@ -58,11 +67,14 @@ const AlertSystem = () => {
           timestamp: '2 hours ago',
           reviewDate: '2024-06-18 12:15:00',
           isRead: false,
-          severity: 'high'
+          severity: 'high',
+          sentiment: 'negative',
+          sentimentEmoji: '😞',
+          sentimentSummary: 'Customer shows dissatisfaction with 2 negative indicators',
+          sentimentConfidence: 0.78
         }
       ];
       
-      // Combine stored alerts with default ones, removing duplicates
       const allAlerts = [...storedAlerts, ...defaultAlerts.filter(
         defaultAlert => !storedAlerts.some(stored => stored.id === defaultAlert.id)
       )];
@@ -71,11 +83,23 @@ const AlertSystem = () => {
     };
 
     loadAlerts();
-    
-    // Poll for new alerts every 2 seconds
     const interval = setInterval(loadAlerts, 2000);
     return () => clearInterval(interval);
   }, []);
+
+  // Sort alerts based on selected criteria
+  const sortedAlerts = [...alerts].sort((a, b) => {
+    switch (sortBy) {
+      case 'sentiment':
+        const sentimentOrder = { negative: 0, mixed: 1, positive: 2 };
+        return sentimentOrder[a.sentiment || 'mixed'] - sentimentOrder[b.sentiment || 'mixed'];
+      case 'severity':
+        const severityOrder = { high: 0, medium: 1, low: 2 };
+        return severityOrder[a.severity] - severityOrder[b.severity];
+      default:
+        return new Date(b.reviewDate).getTime() - new Date(a.reviewDate).getTime();
+    }
+  });
 
   const markAsRead = (alertId: string) => {
     const updatedAlerts = alerts.map(alert => 
@@ -83,7 +107,6 @@ const AlertSystem = () => {
     );
     setAlerts(updatedAlerts);
     
-    // Update localStorage
     const storedAlerts = JSON.parse(localStorage.getItem('feedbackAlerts') || '[]');
     const updatedStoredAlerts = storedAlerts.map((alert: Alert) => 
       alert.id === alertId ? { ...alert, isRead: true } : alert
@@ -95,7 +118,6 @@ const AlertSystem = () => {
     const updatedAlerts = alerts.map(alert => ({ ...alert, isRead: true }));
     setAlerts(updatedAlerts);
     
-    // Update localStorage
     const storedAlerts = JSON.parse(localStorage.getItem('feedbackAlerts') || '[]');
     const updatedStoredAlerts = storedAlerts.map((alert: Alert) => ({ ...alert, isRead: true }));
     localStorage.setItem('feedbackAlerts', JSON.stringify(updatedStoredAlerts));
@@ -105,7 +127,6 @@ const AlertSystem = () => {
     const updatedAlerts = alerts.filter(alert => alert.id !== alertId);
     setAlerts(updatedAlerts);
     
-    // Update localStorage
     const storedAlerts = JSON.parse(localStorage.getItem('feedbackAlerts') || '[]');
     const updatedStoredAlerts = storedAlerts.filter((alert: Alert) => alert.id !== alertId);
     localStorage.setItem('feedbackAlerts', JSON.stringify(updatedStoredAlerts));
@@ -141,6 +162,15 @@ const AlertSystem = () => {
     }
   };
 
+  const getSentimentColor = (sentiment?: string) => {
+    switch (sentiment) {
+      case 'positive': return 'bg-green-100 text-green-800 border-green-200';
+      case 'negative': return 'bg-red-100 text-red-800 border-red-200';
+      case 'mixed': return 'bg-yellow-100 text-yellow-800 border-yellow-200';
+      default: return 'bg-gray-100 text-gray-800 border-gray-200';
+    }
+  };
+
   const getAlertIcon = (type: string) => {
     switch (type) {
       case 'urgent': return <AlertTriangle className="w-5 h-5" />;
@@ -161,7 +191,7 @@ const AlertSystem = () => {
 
   return (
     <div className="space-y-6">
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-8">
+      <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4 mb-8">
         <div>
           <h2 className="text-2xl font-bold text-foreground mb-2">Alert Center</h2>
           <p className="text-muted-foreground">
@@ -169,11 +199,23 @@ const AlertSystem = () => {
           </p>
         </div>
         
-        <div className="flex items-center justify-between sm:justify-end gap-3">
+        <div className="flex items-center justify-between lg:justify-end gap-3 flex-wrap">
+          <Select value={sortBy} onValueChange={(value: 'timestamp' | 'sentiment' | 'severity') => setSortBy(value)}>
+            <SelectTrigger className="w-[140px] bg-input border-border">
+              <SelectValue placeholder="Sort by" />
+            </SelectTrigger>
+            <SelectContent className="bg-popover">
+              <SelectItem value="timestamp">Most Recent</SelectItem>
+              <SelectItem value="sentiment">Sentiment</SelectItem>
+              <SelectItem value="severity">Severity</SelectItem>
+            </SelectContent>
+          </Select>
+          
           <Badge variant="outline" className="flex items-center gap-2 justify-center min-w-[120px]">
             <Bell className="w-4 h-4" />
             <span className="whitespace-nowrap">{unreadAlerts.length} unread</span>
           </Badge>
+          
           {unreadAlerts.length > 0 && (
             <Button 
               variant="outline" 
@@ -199,7 +241,7 @@ const AlertSystem = () => {
         </Card>
       ) : (
         <div className="space-y-4">
-          {alerts.map((alert) => (
+          {sortedAlerts.map((alert) => (
             <Card key={alert.id} className={`trustqr-card ${!alert.isRead ? 'border-l-4 border-l-accent' : ''}`}>
               <CardHeader className="pb-3">
                 <div className="flex items-start justify-between gap-4">
@@ -213,9 +255,16 @@ const AlertSystem = () => {
                       </CardTitle>
                       <CardDescription className="flex flex-col sm:flex-row sm:items-center gap-2">
                         <span>{alert.timestamp}</span>
-                        <Badge variant="outline" className={`${getSeverityColor(alert.severity)} w-fit`}>
-                          {alert.severity} priority
-                        </Badge>
+                        <div className="flex gap-2 flex-wrap">
+                          <Badge variant="outline" className={`${getSeverityColor(alert.severity)} w-fit`}>
+                            {alert.severity} priority
+                          </Badge>
+                          {alert.sentiment && (
+                            <Badge variant="outline" className={`${getSentimentColor(alert.sentiment)} w-fit`}>
+                              {alert.sentimentEmoji} {alert.sentiment}
+                            </Badge>
+                          )}
+                        </div>
                       </CardDescription>
                     </div>
                   </div>
@@ -252,6 +301,18 @@ const AlertSystem = () => {
                 <div className="bg-muted/30 p-4 rounded-lg mb-4">
                   <p className="text-sm text-foreground break-words">{alert.feedback}</p>
                 </div>
+                
+                {alert.sentimentSummary && (
+                  <div className="mb-4 p-3 bg-accent/10 rounded-lg">
+                    <p className="text-xs text-muted-foreground font-medium mb-1">AI Sentiment Analysis:</p>
+                    <p className="text-sm text-foreground">{alert.sentimentSummary}</p>
+                    {alert.sentimentConfidence && (
+                      <p className="text-xs text-muted-foreground mt-1">
+                        Confidence: {Math.round(alert.sentimentConfidence * 100)}%
+                      </p>
+                    )}
+                  </div>
+                )}
                 
                 <div className="flex flex-col sm:flex-row items-start sm:items-center gap-2">
                   <Button 
@@ -307,6 +368,26 @@ const AlertSystem = () => {
                   <p className="text-sm">{selectedAlert.feedback}</p>
                 </div>
               </div>
+              
+              {selectedAlert.sentiment && (
+                <div>
+                  <label className="text-sm font-medium text-muted-foreground">AI Sentiment Analysis</label>
+                  <div className="bg-accent/10 p-3 rounded-lg mt-1">
+                    <div className="flex items-center gap-2 mb-2">
+                      <span className="text-lg">{selectedAlert.sentimentEmoji}</span>
+                      <Badge className={getSentimentColor(selectedAlert.sentiment)}>
+                        {selectedAlert.sentiment}
+                      </Badge>
+                      {selectedAlert.sentimentConfidence && (
+                        <span className="text-xs text-muted-foreground">
+                          {Math.round(selectedAlert.sentimentConfidence * 100)}% confidence
+                        </span>
+                      )}
+                    </div>
+                    <p className="text-sm">{selectedAlert.sentimentSummary}</p>
+                  </div>
+                </div>
+              )}
               
               <div className="grid grid-cols-2 gap-4">
                 <div>

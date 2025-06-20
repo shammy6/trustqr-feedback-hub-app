@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -8,6 +7,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "./auth/AuthProvider";
+import { analyzeSentiment } from "@/utils/sentimentAnalyzer";
 
 const FeedbackForm = () => {
   const [formData, setFormData] = useState({
@@ -35,11 +35,15 @@ const FeedbackForm = () => {
 
     const rating = parseInt(formData.rating);
     
+    // Analyze sentiment
+    const sentimentResult = analyzeSentiment(formData.feedback);
+    
     console.log("Feedback submitted:", {
       ...formData,
       rating,
+      sentiment: sentimentResult,
       timestamp: new Date().toISOString(),
-      businessId: user?.email // Associate with current business
+      businessId: user?.email
     });
     
     // Store in localStorage for AlertSystem to pick up (low ratings only)
@@ -56,10 +60,14 @@ const FeedbackForm = () => {
         reviewDate: new Date().toISOString(),
         isRead: false,
         severity: rating === 1 ? 'high' : rating === 2 ? 'high' : 'medium',
-        wouldRecommend: formData.wouldRecommend
+        wouldRecommend: formData.wouldRecommend,
+        sentiment: sentimentResult.sentiment,
+        sentimentEmoji: sentimentResult.emoji,
+        sentimentSummary: sentimentResult.summary,
+        sentimentConfidence: sentimentResult.confidence
       };
       
-      existingAlerts.unshift(newAlert); // Add to beginning of array
+      existingAlerts.unshift(newAlert);
       localStorage.setItem('feedbackAlerts', JSON.stringify(existingAlerts));
     }
     

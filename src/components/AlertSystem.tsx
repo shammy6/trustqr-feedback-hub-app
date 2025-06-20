@@ -18,48 +18,11 @@ interface Alert {
   isRead: boolean;
   severity: 'high' | 'medium' | 'low';
   reviewDate: string;
+  wouldRecommend?: string;
 }
 
 const AlertSystem = () => {
-  const [alerts, setAlerts] = useState<Alert[]>([
-    {
-      id: '1',
-      type: 'low_rating',
-      customerName: 'John Davis',
-      customerEmail: 'john.davis@email.com',
-      rating: 2,
-      feedback: 'Service was extremely slow and the food was cold when it arrived.',
-      timestamp: '5 minutes ago',
-      reviewDate: '2024-06-18 14:30:00',
-      isRead: false,
-      severity: 'high'
-    },
-    {
-      id: '2',
-      type: 'complaint',
-      customerName: 'Sarah Mitchell',
-      customerEmail: 'sarah.mitchell@email.com',
-      rating: 1,
-      feedback: 'Very disappointed with the cleanliness of the restaurant.',
-      timestamp: '2 hours ago',
-      reviewDate: '2024-06-18 12:15:00',
-      isRead: false,
-      severity: 'high'
-    },
-    {
-      id: '3',
-      type: 'low_rating',
-      customerName: 'Mike Rodriguez',
-      customerEmail: 'mike.rodriguez@email.com',
-      rating: 3,
-      feedback: 'Average experience, nothing special.',
-      timestamp: '1 day ago',
-      reviewDate: '2024-06-17 19:45:00',
-      isRead: true,
-      severity: 'medium'
-    }
-  ]);
-
+  const [alerts, setAlerts] = useState<Alert[]>([]);
   const { toast } = useToast();
   const unreadAlerts = alerts.filter(alert => !alert.isRead);
   
@@ -68,18 +31,84 @@ const AlertSystem = () => {
   const [selectedAlert, setSelectedAlert] = useState<Alert | null>(null);
   const [revealedNames, setRevealedNames] = useState<Set<string>>(new Set());
 
+  // Load alerts from localStorage and set up polling
+  useEffect(() => {
+    const loadAlerts = () => {
+      const storedAlerts = JSON.parse(localStorage.getItem('feedbackAlerts') || '[]');
+      const defaultAlerts: Alert[] = [
+        {
+          id: 'default-1',
+          type: 'low_rating',
+          customerName: 'John Davis',
+          customerEmail: 'john.davis@email.com',
+          rating: 2,
+          feedback: 'Service was extremely slow and the food was cold when it arrived.',
+          timestamp: '5 minutes ago',
+          reviewDate: '2024-06-18 14:30:00',
+          isRead: false,
+          severity: 'high'
+        },
+        {
+          id: 'default-2',
+          type: 'complaint',
+          customerName: 'Sarah Mitchell',
+          customerEmail: 'sarah.mitchell@email.com',
+          rating: 1,
+          feedback: 'Very disappointed with the cleanliness of the restaurant.',
+          timestamp: '2 hours ago',
+          reviewDate: '2024-06-18 12:15:00',
+          isRead: false,
+          severity: 'high'
+        }
+      ];
+      
+      // Combine stored alerts with default ones, removing duplicates
+      const allAlerts = [...storedAlerts, ...defaultAlerts.filter(
+        defaultAlert => !storedAlerts.some(stored => stored.id === defaultAlert.id)
+      )];
+      
+      setAlerts(allAlerts);
+    };
+
+    loadAlerts();
+    
+    // Poll for new alerts every 2 seconds
+    const interval = setInterval(loadAlerts, 2000);
+    return () => clearInterval(interval);
+  }, []);
+
   const markAsRead = (alertId: string) => {
-    setAlerts(alerts.map(alert => 
+    const updatedAlerts = alerts.map(alert => 
       alert.id === alertId ? { ...alert, isRead: true } : alert
-    ));
+    );
+    setAlerts(updatedAlerts);
+    
+    // Update localStorage
+    const storedAlerts = JSON.parse(localStorage.getItem('feedbackAlerts') || '[]');
+    const updatedStoredAlerts = storedAlerts.map((alert: Alert) => 
+      alert.id === alertId ? { ...alert, isRead: true } : alert
+    );
+    localStorage.setItem('feedbackAlerts', JSON.stringify(updatedStoredAlerts));
   };
 
   const markAllAsRead = () => {
-    setAlerts(alerts.map(alert => ({ ...alert, isRead: true })));
+    const updatedAlerts = alerts.map(alert => ({ ...alert, isRead: true }));
+    setAlerts(updatedAlerts);
+    
+    // Update localStorage
+    const storedAlerts = JSON.parse(localStorage.getItem('feedbackAlerts') || '[]');
+    const updatedStoredAlerts = storedAlerts.map((alert: Alert) => ({ ...alert, isRead: true }));
+    localStorage.setItem('feedbackAlerts', JSON.stringify(updatedStoredAlerts));
   };
 
   const deleteAlert = (alertId: string) => {
-    setAlerts(alerts.filter(alert => alert.id !== alertId));
+    const updatedAlerts = alerts.filter(alert => alert.id !== alertId);
+    setAlerts(updatedAlerts);
+    
+    // Update localStorage
+    const storedAlerts = JSON.parse(localStorage.getItem('feedbackAlerts') || '[]');
+    const updatedStoredAlerts = storedAlerts.filter((alert: Alert) => alert.id !== alertId);
+    localStorage.setItem('feedbackAlerts', JSON.stringify(updatedStoredAlerts));
   };
 
   const showCustomerEmail = (alert: Alert) => {
@@ -90,6 +119,7 @@ const AlertSystem = () => {
   const showAlertDetails = (alert: Alert) => {
     setSelectedAlert(alert);
     setShowDetailsModal(true);
+    markAsRead(alert.id);
   };
 
   const toggleNameReveal = (alertId: string) => {
@@ -128,37 +158,6 @@ const AlertSystem = () => {
       minute: '2-digit'
     });
   };
-
-  // Simulate real-time alerts
-  useEffect(() => {
-    const interval = setInterval(() => {
-      // Simulate receiving a new alert occasionally
-      if (Math.random() < 0.1) { // 10% chance every 5 seconds
-        const newAlert: Alert = {
-          id: Date.now().toString(),
-          type: 'low_rating',
-          customerName: 'Anonymous Customer',
-          customerEmail: 'anonymous@email.com',
-          rating: Math.floor(Math.random() * 3) + 1,
-          feedback: 'New feedback requiring attention...',
-          timestamp: 'Just now',
-          reviewDate: new Date().toISOString(),
-          isRead: false,
-          severity: 'high'
-        };
-        
-        setAlerts(prev => [newAlert, ...prev]);
-        
-        toast({
-          title: "New Alert!",
-          description: `${newAlert.customerName} left a ${newAlert.rating}-star review`,
-          variant: "destructive"
-        });
-      }
-    }, 5000);
-
-    return () => clearInterval(interval);
-  }, [toast]);
 
   return (
     <div className="space-y-6">
@@ -319,6 +318,13 @@ const AlertSystem = () => {
                   <p className="text-sm">{formatReviewDate(selectedAlert.reviewDate)}</p>
                 </div>
               </div>
+
+              {selectedAlert.wouldRecommend && (
+                <div>
+                  <label className="text-sm font-medium text-muted-foreground">Would Recommend</label>
+                  <p className="text-sm">{selectedAlert.wouldRecommend}</p>
+                </div>
+              )}
             </div>
           )}
         </DialogContent>

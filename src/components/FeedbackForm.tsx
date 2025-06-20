@@ -7,16 +7,19 @@ import { Textarea } from "@/components/ui/textarea";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { useToast } from "@/hooks/use-toast";
+import { useAuth } from "./auth/AuthProvider";
 
 const FeedbackForm = () => {
   const [formData, setFormData] = useState({
     customerName: "",
+    customerEmail: "",
     rating: "",
     feedback: "",
     wouldRecommend: ""
   });
   const [isSubmitted, setIsSubmitted] = useState(false);
   const { toast } = useToast();
+  const { user } = useAuth();
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -30,23 +33,69 @@ const FeedbackForm = () => {
       return;
     }
 
-    // Simulate form submission
-    console.log("Feedback submitted:", formData);
-    
-    // Redirect logic based on rating
     const rating = parseInt(formData.rating);
     
+    console.log("Feedback submitted:", {
+      ...formData,
+      rating,
+      timestamp: new Date().toISOString(),
+      businessId: user?.email // Associate with current business
+    });
+    
+    // Store in localStorage for AlertSystem to pick up (low ratings only)
+    if (rating <= 3) {
+      const existingAlerts = JSON.parse(localStorage.getItem('feedbackAlerts') || '[]');
+      const newAlert = {
+        id: Date.now().toString(),
+        type: rating === 1 ? 'urgent' : 'low_rating',
+        customerName: formData.customerName || 'Anonymous Customer',
+        customerEmail: formData.customerEmail || 'No email provided',
+        rating: rating,
+        feedback: formData.feedback,
+        timestamp: 'Just now',
+        reviewDate: new Date().toISOString(),
+        isRead: false,
+        severity: rating === 1 ? 'high' : rating === 2 ? 'high' : 'medium',
+        wouldRecommend: formData.wouldRecommend
+      };
+      
+      existingAlerts.unshift(newAlert); // Add to beginning of array
+      localStorage.setItem('feedbackAlerts', JSON.stringify(existingAlerts));
+    }
+    
     if (rating >= 4) {
-      // Redirect to Google Reviews (in real app, this would be customizable per business)
+      // Redirect to Google Reviews
+      const reviewPageLink = user?.reviewPageLink;
       toast({
         title: "Thank you for your feedback!",
         description: "Redirecting you to leave a Google review...",
       });
-      // In real app: window.location.href = "https://google.com/reviews/...";
+      
+      if (reviewPageLink) {
+        setTimeout(() => {
+          window.open(reviewPageLink, '_blank');
+        }, 2000);
+      } else {
+        toast({
+          title: "Review page not configured",
+          description: "Please ask the business owner to set up the review page link in settings.",
+          variant: "destructive"
+        });
+      }
     } else {
-      // Show "We're Sorry" page
+      // Show "We're Sorry" page for ratings 1-3
       setIsSubmitted(true);
     }
+  };
+
+  const handleAdditionalFeedbackSubmit = () => {
+    toast({
+      title: "Additional feedback submitted",
+      description: "A manager will review your feedback and may contact you directly.",
+    });
+    
+    // Store additional feedback
+    console.log("Additional feedback submitted for low rating");
   };
 
   const renderStars = (rating: number) => {
@@ -89,7 +138,10 @@ const FeedbackForm = () => {
               />
             </div>
             
-            <Button className="w-full trustqr-emerald-gradient text-white hover:opacity-90">
+            <Button 
+              onClick={handleAdditionalFeedbackSubmit}
+              className="w-full trustqr-emerald-gradient text-white hover:opacity-90"
+            >
               Submit Additional Feedback
             </Button>
             
@@ -107,7 +159,11 @@ const FeedbackForm = () => {
       <Card className="w-full max-w-md trustqr-card">
         <CardHeader className="text-center">
           <div className="w-12 h-12 mx-auto mb-4 rounded-full trustqr-gradient flex items-center justify-center">
-            <span className="text-white font-bold text-lg">TQ</span>
+            <img 
+              src="/lovable-uploads/0de82d5c-c0ee-4561-882e-764c460eea3f.png" 
+              alt="TrustQR Logo" 
+              className="w-8 h-8 object-contain"
+            />
           </div>
           <CardTitle className="text-xl text-foreground">Share Your Experience</CardTitle>
           <CardDescription>
@@ -125,6 +181,20 @@ const FeedbackForm = () => {
                 placeholder="Enter your name"
                 value={formData.customerName}
                 onChange={(e) => setFormData({ ...formData, customerName: e.target.value })}
+                className="bg-input border-border"
+              />
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="customerEmail">
+                Your Email (Optional)
+              </Label>
+              <Input
+                id="customerEmail"
+                type="email"
+                placeholder="Enter your email"
+                value={formData.customerEmail}
+                onChange={(e) => setFormData({ ...formData, customerEmail: e.target.value })}
                 className="bg-input border-border"
               />
             </div>

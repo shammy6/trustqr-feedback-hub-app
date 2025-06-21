@@ -32,6 +32,7 @@ interface AuthContextType {
   login: (email: string, password: string) => Promise<void>;
   signup: (email: string, password: string, businessName: string) => Promise<void>;
   updateProfile: (data: Partial<UserProfile>) => Promise<void>;
+  resendConfirmation: (email: string) => Promise<{ error: any }>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -75,9 +76,9 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
         const enhancedUser: AuthUser = {
           ...user,
           businessName: data.business_name,
-          reviewPageLink: data.review_page_link,
-          alertEmail: data.alert_email,
-          businessLogo: data.business_logo
+          reviewPageLink: data.review_page_link || undefined,
+          alertEmail: data.alert_email || undefined,
+          businessLogo: data.business_logo || undefined
         };
         setUser(enhancedUser);
       }
@@ -176,11 +177,20 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
       });
 
       if (error) {
-        toast({
-          title: "Login failed",
-          description: error.message,
-          variant: "destructive"
-        });
+        // Check if it's an email confirmation error
+        if (error.message.includes('Email not confirmed')) {
+          toast({
+            title: "Email not confirmed",
+            description: "Please check your email and click the confirmation link before signing in.",
+            variant: "destructive"
+          });
+        } else {
+          toast({
+            title: "Login failed",
+            description: error.message,
+            variant: "destructive"
+          });
+        }
       } else {
         toast({
           title: "Welcome back!",
@@ -198,6 +208,37 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
       return { error };
     } finally {
       setIsLoading(false);
+    }
+  };
+
+  const resendConfirmation = async (email: string) => {
+    try {
+      const { error } = await supabase.auth.resend({
+        type: 'signup',
+        email,
+      });
+
+      if (error) {
+        toast({
+          title: "Failed to resend email",
+          description: error.message,
+          variant: "destructive"
+        });
+      } else {
+        toast({
+          title: "Confirmation email sent",
+          description: "Please check your inbox and click the confirmation link."
+        });
+      }
+
+      return { error };
+    } catch (error: any) {
+      toast({
+        title: "Failed to resend email",
+        description: error.message,
+        variant: "destructive"
+      });
+      return { error };
     }
   };
 
@@ -294,7 +335,8 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
       signOut,
       login,
       signup,
-      updateProfile
+      updateProfile,
+      resendConfirmation
     }}>
       {children}
     </AuthContext.Provider>

@@ -4,8 +4,9 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Alert, AlertDescription } from '@/components/ui/alert';
 import { useAuth } from './AuthProvider';
-import { QrCode } from 'lucide-react';
+import { QrCode, Mail } from 'lucide-react';
 
 const AuthPage = () => {
   const [isSignUp, setIsSignUp] = useState(false);
@@ -13,19 +14,39 @@ const AuthPage = () => {
   const [password, setPassword] = useState('');
   const [name, setName] = useState('');
   const [businessName, setBusinessName] = useState('');
-  const { signUp, signIn, isLoading } = useAuth();
+  const [authError, setAuthError] = useState<{ message: string; showResend: boolean } | null>(null);
+  const { signUp, signIn, resendConfirmation, isLoading } = useAuth();
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    setAuthError(null);
     
     if (isSignUp) {
       if (!name.trim() || !businessName.trim()) {
+        setAuthError({ message: "Please fill in all required fields", showResend: false });
         return;
       }
-      await signUp(email, password, name, businessName);
+      const { error } = await signUp(email, password, name, businessName);
+      if (error) {
+        setAuthError({ message: error.message, showResend: false });
+      }
     } else {
-      await signIn(email, password);
+      const { error } = await signIn(email, password);
+      if (error) {
+        if (error.message.includes('Email not confirmed')) {
+          setAuthError({
+            message: 'Please confirm your email address before logging in.',
+            showResend: true,
+          });
+        } else {
+          setAuthError({ message: error.message, showResend: false });
+        }
+      }
     }
+  };
+
+  const handleResendConfirmation = async () => {
+    await resendConfirmation(email);
   };
 
   return (
@@ -97,6 +118,26 @@ const AuthPage = () => {
                 required
               />
             </div>
+
+            {authError && (
+              <Alert variant="destructive">
+                <AlertDescription className="space-y-2">
+                  <p>{authError.message}</p>
+                  {authError.showResend && (
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      onClick={handleResendConfirmation}
+                      className="w-full"
+                    >
+                      <Mail className="w-4 h-4 mr-2" />
+                      Resend confirmation email
+                    </Button>
+                  )}
+                </AlertDescription>
+              </Alert>
+            )}
 
             <Button 
               type="submit" 

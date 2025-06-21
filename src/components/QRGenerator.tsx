@@ -1,85 +1,89 @@
-import { useState } from "react";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import QRCodeDisplay from "./QRCodeDisplay";
-import { QrCode, Sparkles } from "lucide-react";
-import { useAuth } from "./auth/AuthProvider";
+
+import React, { useState } from 'react';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { QrCode, Download, RotateCcw } from 'lucide-react';
+import QRCode from 'qrcode';
+import { useAuth } from './auth/AuthProvider';
 
 const QRGenerator = () => {
-  const { user } = useAuth();
-  const [businessName, setBusinessName] = useState(user?.businessName || "");
-  const [feedbackType, setFeedbackType] = useState("");
+  const { userProfile } = useAuth();
+  const [businessName, setBusinessName] = useState(userProfile?.business_name || '');
+  const [feedbackType, setFeedbackType] = useState('general');
+  const [qrData, setQrData] = useState('');
   const [qrGenerated, setQrGenerated] = useState(false);
-  const [qrData, setQrData] = useState("");
 
-  const handleGenerateQR = () => {
+  const handleGenerateQR = async () => {
     if (!businessName || !feedbackType) return;
     
-    // Generate unique QR data (in a real app, this would be a proper URL)
-    const qrUrl = `https://trustqr.app/feedback/${businessName.toLowerCase().replace(/\s+/g, '-')}-${feedbackType}-${Date.now()}`;
-    setQrData(qrUrl);
+    const feedbackUrl = `${window.location.origin}/feedback/${btoa(businessName)}_${feedbackType}`;
+    setQrData(feedbackUrl);
     setQrGenerated(true);
   };
 
   const handleReset = () => {
     setQrGenerated(false);
-    setQrData("");
-    setFeedbackType("");
+    setQrData('');
+    setFeedbackType('general');
+  };
+
+  const downloadQR = async () => {
+    if (!qrData) return;
+    
+    try {
+      const canvas = document.createElement('canvas');
+      await QRCode.toCanvas(canvas, qrData, {
+        width: 300,
+        margin: 2,
+      });
+      
+      const link = document.createElement('a');
+      link.download = `${businessName}-qr-code.png`;
+      link.href = canvas.toDataURL();
+      link.click();
+    } catch (error) {
+      console.error('Error generating QR code:', error);
+    }
   };
 
   return (
-    <div className="space-y-6">
-      <div className="mb-8">
-        <h2 className="text-2xl font-bold text-foreground mb-2 flex items-center gap-2">
-          <Sparkles className="w-6 h-6 text-accent" />
-          QR Code Generator
-        </h2>
-        <p className="text-muted-foreground">
-          Create a QR code for your customers to easily leave feedback
-        </p>
-      </div>
-
-      <Card className="border-2 border-dashed border-accent/30 bg-card/50 backdrop-blur-sm">
+    <div className="max-w-2xl mx-auto p-6 space-y-6">
+      <Card className="trustqr-card">
         <CardHeader className="text-center">
-          <div className="w-12 h-12 mx-auto mb-4 rounded-full trustqr-emerald-gradient flex items-center justify-center">
-            <QrCode className="w-6 h-6 text-white" />
+          <div className="w-16 h-16 mx-auto mb-4 rounded-full trustqr-gradient flex items-center justify-center">
+            <QrCode className="w-8 h-8 text-white" />
           </div>
-          <CardTitle className="text-xl text-foreground">Generate Your QR Code</CardTitle>
-          <CardDescription>
-            Create a QR code for your customers to easily leave feedback
-          </CardDescription>
+          <CardTitle className="text-2xl text-foreground">QR Code Generator</CardTitle>
+          <CardDescription>Create custom QR codes for collecting feedback</CardDescription>
         </CardHeader>
         <CardContent className="space-y-6">
           {!qrGenerated ? (
             <>
               <div className="space-y-2">
-                <Label htmlFor="businessName" className="text-sm font-medium">
-                  Business Name
-                </Label>
+                <Label htmlFor="businessName">Business Name</Label>
                 <Input
                   id="businessName"
-                  placeholder="e.g., Joe's Coffee Shop"
+                  placeholder="Enter your business name"
                   value={businessName}
                   onChange={(e) => setBusinessName(e.target.value)}
-                  className="h-12 bg-input border-border"
+                  className="bg-input border-border"
                 />
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="feedbackType" className="text-sm font-medium">
-                  Select Feedback Type
-                </Label>
+                <Label htmlFor="feedbackType">Feedback Type</Label>
                 <Select value={feedbackType} onValueChange={setFeedbackType}>
-                  <SelectTrigger className="h-12 bg-input border-border">
-                    <SelectValue placeholder="Choose feedback type" />
+                  <SelectTrigger className="bg-input border-border">
+                    <SelectValue placeholder="Select feedback type" />
                   </SelectTrigger>
-                  <SelectContent className="bg-popover">
+                  <SelectContent>
                     <SelectItem value="general">General Feedback</SelectItem>
-                    <SelectItem value="post-visit">Post-Visit Experience</SelectItem>
-                    <SelectItem value="complaint">Complaint & Issues</SelectItem>
+                    <SelectItem value="service">Service Quality</SelectItem>
+                    <SelectItem value="product">Product Quality</SelectItem>
+                    <SelectItem value="experience">Overall Experience</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
@@ -87,23 +91,50 @@ const QRGenerator = () => {
               <Button 
                 onClick={handleGenerateQR}
                 disabled={!businessName || !feedbackType}
-                className="w-full h-12 trustqr-emerald-gradient text-white font-medium hover:opacity-90 transition-opacity"
+                className="w-full trustqr-emerald-gradient text-white hover:opacity-90"
               >
-                <QrCode className="w-5 h-5 mr-2" />
                 Generate QR Code
               </Button>
             </>
           ) : (
-            <div className="space-y-6">
-              <QRCodeDisplay qrData={qrData} businessName={businessName} />
+            <div className="text-center space-y-4">
+              <div className="bg-white p-6 rounded-lg inline-block">
+                <canvas
+                  ref={(canvas) => {
+                    if (canvas && qrData) {
+                      QRCode.toCanvas(canvas, qrData, {
+                        width: 250,
+                        margin: 2,
+                      });
+                    }
+                  }}
+                />
+              </div>
               
-              <div className="flex gap-3">
+              <div className="space-y-2">
+                <p className="text-sm text-muted-foreground">
+                  QR Code for: <span className="font-semibold">{businessName}</span>
+                </p>
+                <p className="text-xs text-muted-foreground">
+                  Type: {feedbackType.charAt(0).toUpperCase() + feedbackType.slice(1)} Feedback
+                </p>
+              </div>
+
+              <div className="flex gap-2 justify-center">
+                <Button
+                  onClick={downloadQR}
+                  className="trustqr-emerald-gradient text-white hover:opacity-90"
+                >
+                  <Download className="w-4 h-4 mr-2" />
+                  Download
+                </Button>
                 <Button
                   onClick={handleReset}
                   variant="outline"
-                  className="flex-1 h-11 border-border"
+                  className="border-border"
                 >
-                  Generate New QR
+                  <RotateCcw className="w-4 h-4 mr-2" />
+                  Generate New
                 </Button>
               </div>
             </div>
@@ -112,21 +143,6 @@ const QRGenerator = () => {
       </Card>
     </div>
   );
-};
-
-const handleGenerateQR = () => {
-  if (!businessName || !feedbackType) return;
-  
-  // Generate unique QR data (in a real app, this would be a proper URL)
-  const qrUrl = `https://trustqr.app/feedback/${businessName.toLowerCase().replace(/\s+/g, '-')}-${feedbackType}-${Date.now()}`;
-  setQrData(qrUrl);
-  setQrGenerated(true);
-};
-
-const handleReset = () => {
-  setQrGenerated(false);
-  setQrData("");
-  setFeedbackType("");
 };
 
 export default QRGenerator;

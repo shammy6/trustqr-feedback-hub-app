@@ -18,7 +18,7 @@ interface HeaderProps {
 }
 
 const Header = ({ activeTab, onTabChange }: HeaderProps) => {
-  const { user, logout } = useAuth();
+  const { userProfile, signOut } = useAuth();
 
   const handleLogoClick = () => {
     onTabChange('generator');
@@ -99,20 +99,12 @@ const Header = ({ activeTab, onTabChange }: HeaderProps) => {
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
                 <Button variant="ghost" className="flex items-center space-x-2 hover:bg-muted">
-                  {user?.businessLogo ? (
-                    <img 
-                      src={user.businessLogo} 
-                      alt="User Avatar" 
-                      className="w-8 h-8 rounded-full object-cover"
-                    />
-                  ) : (
-                    <div className="w-8 h-8 rounded-full bg-accent flex items-center justify-center">
-                      <User className="w-4 h-4 text-accent-foreground" />
-                    </div>
-                  )}
+                  <div className="w-8 h-8 rounded-full bg-accent flex items-center justify-center">
+                    <User className="w-4 h-4 text-accent-foreground" />
+                  </div>
                   <div className="hidden sm:block text-left">
-                    <p className="text-sm font-medium text-foreground">{user?.businessName}</p>
-                    <p className="text-xs text-muted-foreground">{user?.email}</p>
+                    <p className="text-sm font-medium text-foreground">{userProfile?.business_name}</p>
+                    <p className="text-xs text-muted-foreground">{userProfile?.email}</p>
                   </div>
                   <ChevronDown className="w-4 h-4 text-muted-foreground" />
                 </Button>
@@ -120,8 +112,8 @@ const Header = ({ activeTab, onTabChange }: HeaderProps) => {
               <DropdownMenuContent align="end" className="w-64 bg-popover">
                 <DropdownMenuLabel>My Account</DropdownMenuLabel>
                 <div className="px-2 py-1.5 text-sm">
-                  <p className="font-medium">{user?.businessName}</p>
-                  <p className="text-muted-foreground text-xs">{user?.email}</p>
+                  <p className="font-medium">{userProfile?.name}</p>
+                  <p className="text-muted-foreground text-xs">{userProfile?.email}</p>
                 </div>
                 <DropdownMenuSeparator />
                 <DropdownMenuItem onClick={() => onTabChange('settings')}>
@@ -133,7 +125,7 @@ const Header = ({ activeTab, onTabChange }: HeaderProps) => {
                   Analytics
                 </DropdownMenuItem>
                 <DropdownMenuSeparator />
-                <DropdownMenuItem onClick={logout} className="text-destructive">
+                <DropdownMenuItem onClick={signOut} className="text-destructive">
                   <LogOut className="mr-2 h-4 w-4" />
                   Sign out
                 </DropdownMenuItem>

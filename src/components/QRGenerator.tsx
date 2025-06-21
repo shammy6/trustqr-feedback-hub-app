@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -113,6 +112,21 @@ const QRGenerator = () => {
       </Card>
     </div>
   );
+};
+
+const handleGenerateQR = () => {
+  if (!businessName || !feedbackType) return;
+  
+  // Generate unique QR data (in a real app, this would be a proper URL)
+  const qrUrl = `https://trustqr.app/feedback/${businessName.toLowerCase().replace(/\s+/g, '-')}-${feedbackType}-${Date.now()}`;
+  setQrData(qrUrl);
+  setQrGenerated(true);
+};
+
+const handleReset = () => {
+  setQrGenerated(false);
+  setQrData("");
+  setFeedbackType("");
 };
 
 export default QRGenerator;

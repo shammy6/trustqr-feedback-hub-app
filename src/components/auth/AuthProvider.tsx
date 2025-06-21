@@ -9,16 +9,29 @@ interface UserProfile {
   name: string;
   business_name: string;
   email: string;
+  review_page_link?: string;
+  alert_email?: string;
+  business_logo?: string;
+}
+
+interface AuthUser extends User {
+  businessName?: string;
+  reviewPageLink?: string;
+  alertEmail?: string;
+  businessLogo?: string;
 }
 
 interface AuthContextType {
-  user: User | null;
+  user: AuthUser | null;
   userProfile: UserProfile | null;
   session: Session | null;
   isLoading: boolean;
   signUp: (email: string, password: string, name: string, businessName: string) => Promise<{ error: any }>;
   signIn: (email: string, password: string) => Promise<{ error: any }>;
   signOut: () => Promise<void>;
+  login: (email: string, password: string) => Promise<void>;
+  signup: (email: string, password: string, businessName: string) => Promise<void>;
+  updateProfile: (data: Partial<UserProfile>) => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -36,7 +49,7 @@ interface AuthProviderProps {
 }
 
 export const AuthProvider = ({ children }: AuthProviderProps) => {
-  const [user, setUser] = useState<User | null>(null);
+  const [user, setUser] = useState<AuthUser | null>(null);
   const [userProfile, setUserProfile] = useState<UserProfile | null>(null);
   const [session, setSession] = useState<Session | null>(null);
   const [isLoading, setIsLoading] = useState(true);
@@ -56,6 +69,18 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
       }
 
       setUserProfile(data);
+      
+      // Enhance user object with profile data
+      if (user) {
+        const enhancedUser: AuthUser = {
+          ...user,
+          businessName: data.business_name,
+          reviewPageLink: data.review_page_link,
+          alertEmail: data.alert_email,
+          businessLogo: data.business_logo
+        };
+        setUser(enhancedUser);
+      }
     } catch (error) {
       console.error('Error fetching user profile:', error);
     }
@@ -203,6 +228,61 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
     }
   };
 
+  // Alias methods for compatibility
+  const login = async (email: string, password: string) => {
+    const { error } = await signIn(email, password);
+    if (error) throw error;
+  };
+
+  const signup = async (email: string, password: string, businessName: string) => {
+    const { error } = await signUp(email, password, 'User', businessName);
+    if (error) throw error;
+  };
+
+  const updateProfile = async (data: Partial<UserProfile>) => {
+    if (!user || !userProfile) return;
+
+    try {
+      const { error } = await supabase
+        .from('users')
+        .update({
+          name: data.name || userProfile.name,
+          business_name: data.business_name || userProfile.business_name,
+          review_page_link: data.review_page_link,
+          alert_email: data.alert_email,
+          business_logo: data.business_logo
+        })
+        .eq('id', user.id);
+
+      if (error) throw error;
+
+      // Update local state
+      const updatedProfile = { ...userProfile, ...data };
+      setUserProfile(updatedProfile);
+      
+      // Update enhanced user object
+      const enhancedUser: AuthUser = {
+        ...user,
+        businessName: updatedProfile.business_name,
+        reviewPageLink: updatedProfile.review_page_link,
+        alertEmail: updatedProfile.alert_email,
+        businessLogo: updatedProfile.business_logo
+      };
+      setUser(enhancedUser);
+
+      toast({
+        title: "Profile updated",
+        description: "Your profile has been updated successfully"
+      });
+    } catch (error: any) {
+      toast({
+        title: "Update failed",
+        description: error.message,
+        variant: "destructive"
+      });
+    }
+  };
+
   return (
     <AuthContext.Provider value={{ 
       user, 
@@ -211,7 +291,10 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
       isLoading, 
       signUp, 
       signIn, 
-      signOut 
+      signOut,
+      login,
+      signup,
+      updateProfile
     }}>
       {children}
     </AuthContext.Provider>

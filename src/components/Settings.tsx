@@ -9,22 +9,18 @@ import { useToast } from '@/hooks/use-toast';
 import { Upload, Save, Building2, Mail, Link, ImageIcon } from 'lucide-react';
 
 const Settings = () => {
-  const { user, updateProfile } = useAuth();
+  const { userProfile, updateProfile } = useAuth();
   const { toast } = useToast();
   const [formData, setFormData] = useState({
-    businessName: user?.businessName || '',
-    reviewPageLink: user?.reviewPageLink || '',
-    alertEmail: user?.alertEmail || '',
-    businessLogo: user?.businessLogo || ''
+    business_name: userProfile?.business_name || '',
+    review_page_link: userProfile?.review_page_link || '',
+    alert_email: userProfile?.alert_email || '',
+    business_logo: userProfile?.business_logo || ''
   });
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     updateProfile(formData);
-    toast({
-      title: "Settings saved!",
-      description: "Your business settings have been updated successfully."
-    });
   };
 
   const handleLogoUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -33,7 +29,7 @@ const Settings = () => {
       // In a real app, this would upload to a storage service
       const reader = new FileReader();
       reader.onload = (e) => {
-        setFormData({ ...formData, businessLogo: e.target?.result as string });
+        setFormData({ ...formData, business_logo: e.target?.result as string });
       };
       reader.readAsDataURL(file);
     }
@@ -64,8 +60,8 @@ const Settings = () => {
               <Label htmlFor="businessName">Business Name</Label>
               <Input
                 id="businessName"
-                value={formData.businessName}
-                onChange={(e) => setFormData({ ...formData, businessName: e.target.value })}
+                value={formData.business_name}
+                onChange={(e) => setFormData({ ...formData, business_name: e.target.value })}
                 className="bg-input border-border"
                 placeholder="Enter your business name"
               />
@@ -74,9 +70,9 @@ const Settings = () => {
             <div className="space-y-2">
               <Label htmlFor="businessLogo">Business Logo</Label>
               <div className="flex items-center gap-4">
-                {formData.businessLogo && (
+                {formData.business_logo && (
                   <img
-                    src={formData.businessLogo}
+                    src={formData.business_logo}
                     alt="Business Logo"
                     className="w-16 h-16 rounded-lg object-cover border border-border"
                   />
@@ -103,8 +99,8 @@ const Settings = () => {
               </Label>
               <Input
                 id="reviewPageLink"
-                value={formData.reviewPageLink}
-                onChange={(e) => setFormData({ ...formData, reviewPageLink: e.target.value })}
+                value={formData.review_page_link}
+                onChange={(e) => setFormData({ ...formData, review_page_link: e.target.value })}
                 className="bg-input border-border"
                 placeholder="https://g.page/your-business/review"
               />
@@ -121,8 +117,8 @@ const Settings = () => {
               <Input
                 id="alertEmail"
                 type="email"
-                value={formData.alertEmail}
-                onChange={(e) => setFormData({ ...formData, alertEmail: e.target.value })}
+                value={formData.alert_email}
+                onChange={(e) => setFormData({ ...formData, alert_email: e.target.value })}
                 className="bg-input border-border"
                 placeholder="alerts@yourbusiness.com"
               />

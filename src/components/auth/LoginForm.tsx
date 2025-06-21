@@ -16,7 +16,7 @@ const LoginForm = ({ onToggleMode }: LoginFormProps) => {
   const [password, setPassword] = useState('');
   const [businessName, setBusinessName] = useState('');
   const [isSignup, setIsSignup] = useState(false);
-  const { login, signup, isLoading } = useAuth();
+  const { signIn, signUp, isLoading } = useAuth();
   const { toast } = useToast();
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -32,13 +32,13 @@ const LoginForm = ({ onToggleMode }: LoginFormProps) => {
           });
           return;
         }
-        await signup(email, password, businessName);
+        await signUp(email, password, 'User', businessName);
         toast({
           title: "Account created successfully!",
           description: "Welcome to TrustQR"
         });
       } else {
-        await login(email, password);
+        await signIn(email, password);
         toast({
           title: "Welcome back!",
           description: "You've been successfully logged in"

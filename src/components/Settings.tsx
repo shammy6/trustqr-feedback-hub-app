@@ -18,9 +18,36 @@ const Settings = () => {
     business_logo: userProfile?.business_logo || ''
   });
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    updateProfile(formData);
+    console.log('Save Settings clicked');
+    console.log('Form data to save:', formData);
+
+    try {
+      const { error } = await updateProfile(formData);
+
+      if (error) {
+        console.error('Update failed:', error.message || error);
+        toast({
+          title: "Error",
+          description: "Failed to save settings. Please try again.",
+          variant: "destructive"
+        });
+      } else {
+        console.log('Settings saved successfully');
+        toast({
+          title: "Success",
+          description: "Settings saved successfully!",
+        });
+      }
+    } catch (error) {
+      console.error('Unexpected error:', error);
+      toast({
+        title: "Error",
+        description: "An unexpected error occurred. Please try again.",
+        variant: "destructive"
+      });
+    }
   };
 
   const handleLogoUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -29,7 +56,9 @@ const Settings = () => {
       // In a real app, this would upload to a storage service
       const reader = new FileReader();
       reader.onload = (e) => {
-        setFormData({ ...formData, business_logo: e.target?.result as string });
+        const logoUrl = e.target?.result as string;
+        console.log('Logo uploaded, setting in form data');
+        setFormData({ ...formData, business_logo: logoUrl });
       };
       reader.readAsDataURL(file);
     }

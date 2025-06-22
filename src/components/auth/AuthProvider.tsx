@@ -66,25 +66,26 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const fetchUserProfile = async (userId: string) => {
     try {
-      // Only select columns that exist in the database
+      console.log('Fetching user profile for:', userId);
+      // Now select all columns including the new ones
       const { data, error } = await supabase
         .from('users')
-        .select('id, name, business_name, email')
+        .select('id, name, business_name, email, review_page_link, alert_email, business_logo')
         .eq('id', userId)
         .single();
 
       if (error) {
         console.error('Error fetching user profile:', error);
       } else if (data) {
+        console.log('User profile fetched:', data);
         setUserProfile({
           id: data.id,
           name: data.name,
           business_name: data.business_name,
           email: data.email,
-          // Set optional fields to undefined since they don't exist in DB yet
-          review_page_link: undefined,
-          alert_email: undefined,
-          business_logo: undefined,
+          review_page_link: data.review_page_link,
+          alert_email: data.alert_email,
+          business_logo: data.business_logo,
         });
       }
     } catch (error) {
@@ -135,11 +136,16 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
 
     try {
-      // Only update fields that exist in the database
+      console.log('Updating profile with:', updates);
+      
+      // Build the update object with all possible fields
       const dbUpdates: any = {};
       if (updates.name !== undefined) dbUpdates.name = updates.name;
       if (updates.business_name !== undefined) dbUpdates.business_name = updates.business_name;
       if (updates.email !== undefined) dbUpdates.email = updates.email;
+      if (updates.review_page_link !== undefined) dbUpdates.review_page_link = updates.review_page_link;
+      if (updates.alert_email !== undefined) dbUpdates.alert_email = updates.alert_email;
+      if (updates.business_logo !== undefined) dbUpdates.business_logo = updates.business_logo;
 
       const { error } = await supabase
         .from('users')
@@ -147,8 +153,11 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         .eq('id', user.id);
 
       if (error) {
+        console.error('Update profile error:', error);
         return { error };
       }
+
+      console.log('Profile updated successfully');
 
       // Update local state
       if (userProfile) {
@@ -157,6 +166,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
       return { error: null };
     } catch (error) {
+      console.error('Update profile catch error:', error);
       return { error };
     }
   };

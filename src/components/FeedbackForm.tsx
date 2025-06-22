@@ -21,7 +21,7 @@ const FeedbackForm = () => {
   const [isSubmitted, setIsSubmitted] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const { toast } = useToast();
-  const { user } = useAuth();
+  const { user, userProfile } = useAuth();
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -85,7 +85,7 @@ const FeedbackForm = () => {
 
     if (rating >= 4) {
       // Redirect to Google Reviews
-      const reviewPageLink = user?.reviewPageLink;
+      const reviewPageLink = userProfile?.review_page_link;
       toast({
         title: "Thank you for your feedback!",
         description: "Redirecting you to leave a Google review...",

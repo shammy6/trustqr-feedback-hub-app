@@ -6,7 +6,9 @@ import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { QrCode, Download, RotateCcw } from 'lucide-react';
-import QRCode from 'qrcode';
+import { QRCodeCanvas } from 'qrcode.react';
+import html2canvas from 'html2canvas';
+import jsPDF from 'jspdf';
 import { useAuth } from './auth/AuthProvider';
 
 const QRGenerator = () => {
@@ -30,22 +32,27 @@ const QRGenerator = () => {
     setFeedbackType('general');
   };
 
-  const downloadQR = async () => {
+  const downloadPDF = async () => {
     if (!qrData) return;
     
     try {
-      const canvas = document.createElement('canvas');
-      await QRCode.toCanvas(canvas, qrData, {
-        width: 300,
-        margin: 2,
+      const element = document.getElementById('qr-container');
+      if (!element) return;
+      
+      const canvas = await html2canvas(element, {
+        backgroundColor: '#ffffff',
+        scale: 2
       });
       
-      const link = document.createElement('a');
-      link.download = `${businessName}-qr-code.png`;
-      link.href = canvas.toDataURL();
-      link.click();
+      const pdf = new jsPDF();
+      const imgData = canvas.toDataURL('image/png');
+      const imgWidth = 150;
+      const imgHeight = (canvas.height * imgWidth) / canvas.width;
+      
+      pdf.addImage(imgData, 'PNG', 30, 30, imgWidth, imgHeight);
+      pdf.save(`${businessName}-qr-code.pdf`);
     } catch (error) {
-      console.error('Error generating QR code:', error);
+      console.error('Error generating PDF:', error);
     }
   };
 
@@ -98,16 +105,12 @@ const QRGenerator = () => {
             </>
           ) : (
             <div className="text-center space-y-4">
-              <div className="bg-white p-6 rounded-lg inline-block">
-                <canvas
-                  ref={(canvas) => {
-                    if (canvas && qrData) {
-                      QRCode.toCanvas(canvas, qrData, {
-                        width: 250,
-                        margin: 2,
-                      });
-                    }
-                  }}
+              <div id="qr-container" className="bg-white p-6 rounded-lg inline-block">
+                <QRCodeCanvas
+                  value={qrData}
+                  size={250}
+                  level="M"
+                  includeMargin={true}
                 />
               </div>
               
@@ -120,13 +123,23 @@ const QRGenerator = () => {
                 </p>
               </div>
 
+              <div className="space-y-2">
+                <Label htmlFor="qrLink">QR Code Link</Label>
+                <Input
+                  id="qrLink"
+                  value={qrData}
+                  readOnly
+                  className="bg-white text-black border-border"
+                />
+              </div>
+
               <div className="flex gap-2 justify-center">
                 <Button
-                  onClick={downloadQR}
+                  onClick={downloadPDF}
                   className="trustqr-emerald-gradient text-white hover:opacity-90"
                 >
                   <Download className="w-4 h-4 mr-2" />
-                  Download
+                  Download PDF
                 </Button>
                 <Button
                   onClick={handleReset}

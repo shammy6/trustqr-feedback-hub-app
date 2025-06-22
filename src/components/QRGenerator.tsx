@@ -105,10 +105,10 @@ const QRGenerator = () => {
             </>
           ) : (
             <div className="text-center space-y-4">
-              <div id="qr-container" className="bg-white p-6 rounded-lg inline-block">
+              <div id="qr-container" className="p-4 bg-white rounded-md shadow inline-block">
                 <QRCodeCanvas
                   value={qrData}
-                  size={250}
+                  size={256}
                   level="M"
                   includeMargin={true}
                 />
@@ -129,7 +129,7 @@ const QRGenerator = () => {
                   id="qrLink"
                   value={qrData}
                   readOnly
-                  className="bg-white text-black border-border"
+                  className="bg-white text-gray-800 border-border"
                 />
               </div>
 

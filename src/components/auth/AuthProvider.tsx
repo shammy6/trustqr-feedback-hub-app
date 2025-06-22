@@ -20,6 +20,7 @@ interface AuthContextType {
   signIn: (email: string, password: string) => Promise<{ error: any }>;
   signOut: () => Promise<void>;
   resendConfirmation: (email: string) => Promise<void>;
+  updateProfile: (updates: Partial<UserProfile>) => Promise<{ error: any }>;
   isLoading: boolean;
 }
 
@@ -65,23 +66,25 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const fetchUserProfile = async (userId: string) => {
     try {
+      // Only select columns that exist in the database
       const { data, error } = await supabase
         .from('users')
-        .select('id, name, business_name, email, review_page_link, alert_email, business_logo')
+        .select('id, name, business_name, email')
         .eq('id', userId)
         .single();
 
       if (error) {
         console.error('Error fetching user profile:', error);
-      } else {
+      } else if (data) {
         setUserProfile({
           id: data.id,
           name: data.name,
           business_name: data.business_name,
           email: data.email,
-          review_page_link: data.review_page_link || undefined,
-          alert_email: data.alert_email || undefined,
-          business_logo: data.business_logo || undefined,
+          // Set optional fields to undefined since they don't exist in DB yet
+          review_page_link: undefined,
+          alert_email: undefined,
+          business_logo: undefined,
         });
       }
     } catch (error) {
@@ -126,6 +129,38 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     });
   };
 
+  const updateProfile = async (updates: Partial<UserProfile>) => {
+    if (!user) {
+      return { error: new Error('No user logged in') };
+    }
+
+    try {
+      // Only update fields that exist in the database
+      const dbUpdates: any = {};
+      if (updates.name !== undefined) dbUpdates.name = updates.name;
+      if (updates.business_name !== undefined) dbUpdates.business_name = updates.business_name;
+      if (updates.email !== undefined) dbUpdates.email = updates.email;
+
+      const { error } = await supabase
+        .from('users')
+        .update(dbUpdates)
+        .eq('id', user.id);
+
+      if (error) {
+        return { error };
+      }
+
+      // Update local state
+      if (userProfile) {
+        setUserProfile({ ...userProfile, ...updates });
+      }
+
+      return { error: null };
+    } catch (error) {
+      return { error };
+    }
+  };
+
   const value = {
     user,
     userProfile,
@@ -133,6 +168,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     signIn,
     signOut,
     resendConfirmation,
+    updateProfile,
     isLoading,
   };
 

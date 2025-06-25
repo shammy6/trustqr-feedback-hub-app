@@ -37,74 +37,92 @@ const FeedbackForm = () => {
 
     setIsSubmitting(true);
 
-    // Simulate loading for better UX
-    await new Promise(resolve => setTimeout(resolve, 800));
+    try {
+      // Simulate loading for better UX
+      await new Promise(resolve => setTimeout(resolve, 800));
 
-    const rating = parseInt(formData.rating);
-    
-    // Analyze sentiment
-    const sentimentResult = analyzeSentiment(formData.feedback);
-    
-    console.log("Feedback submitted:", {
-      ...formData,
-      rating,
-      sentiment: sentimentResult,
-      timestamp: new Date().toISOString(),
-      businessId: user?.email
-    });
-    
-    // Store in localStorage for AlertSystem to pick up (low ratings only)
-    if (rating <= 3) {
-      const existingAlerts = JSON.parse(localStorage.getItem('feedbackAlerts') || '[]');
-      const newAlert = {
-        id: Date.now().toString(),
-        type: rating === 1 ? 'urgent' : 'low_rating',
-        customerName: formData.customerName || 'Anonymous Customer',
-        customerEmail: formData.customerEmail || 'No email provided',
-        rating: rating,
-        feedback: formData.feedback,
-        timestamp: 'Just now',
-        reviewDate: new Date().toISOString(),
-        isRead: false,
-        severity: rating === 1 ? 'high' : rating === 2 ? 'high' : 'medium',
-        wouldRecommend: formData.wouldRecommend,
-        sentiment: sentimentResult.sentiment,
-        sentimentEmoji: sentimentResult.emoji,
-        sentimentSummary: sentimentResult.summary,
-        sentimentConfidence: sentimentResult.confidence
-      };
+      const rating = parseInt(formData.rating);
       
-      existingAlerts.unshift(newAlert);
-      localStorage.setItem('feedbackAlerts', JSON.stringify(existingAlerts));
+      // Analyze sentiment
+      const sentimentResult = analyzeSentiment(formData.feedback);
       
-      // Trigger a custom event to notify AlertSystem immediately
-      window.dispatchEvent(new CustomEvent('newFeedbackAlert', { detail: newAlert }));
-    }
-    
-    setIsSubmitting(false);
-
-    if (rating >= 4) {
-      // Redirect to Google Reviews
-      const reviewPageLink = userProfile?.review_page_link;
-      toast({
-        title: "Thank you for your feedback!",
-        description: "Redirecting you to leave a Google review...",
+      console.log("Feedback submitted:", {
+        ...formData,
+        rating,
+        sentiment: sentimentResult,
+        timestamp: new Date().toISOString(),
+        businessId: user?.email
       });
       
-      if (reviewPageLink) {
-        setTimeout(() => {
-          window.open(reviewPageLink, '_blank');
-        }, 2000);
-      } else {
-        toast({
-          title: "Review page not configured",
-          description: "Please ask the business owner to set up the review page link in settings.",
-          variant: "destructive"
-        });
+      // Store in localStorage for AlertSystem to pick up (low ratings only)
+      if (rating <= 3) {
+        const existingAlerts = JSON.parse(localStorage.getItem('feedbackAlerts') || '[]');
+        const newAlert = {
+          id: Date.now().toString(),
+          type: rating === 1 ? 'urgent' : 'low_rating',
+          customerName: formData.customerName || 'Anonymous Customer',
+          customerEmail: formData.customerEmail || 'No email provided',
+          rating: rating,
+          feedback: formData.feedback,
+          timestamp: 'Just now',
+          reviewDate: new Date().toISOString(),
+          isRead: false,
+          severity: rating === 1 ? 'high' : rating === 2 ? 'high' : 'medium',
+          wouldRecommend: formData.wouldRecommend,
+          sentiment: sentimentResult.sentiment,
+          sentimentEmoji: sentimentResult.emoji,
+          sentimentSummary: sentimentResult.summary,
+          sentimentConfidence: sentimentResult.confidence
+        };
+        
+        existingAlerts.unshift(newAlert);
+        localStorage.setItem('feedbackAlerts', JSON.stringify(existingAlerts));
+        
+        // Trigger a custom event to notify AlertSystem immediately
+        window.dispatchEvent(new CustomEvent('newFeedbackAlert', { detail: newAlert }));
       }
-    } else {
-      // Show "We're Sorry" page for ratings 1-3
-      setIsSubmitted(true);
+      
+      setIsSubmitting(false);
+
+      if (rating >= 4) {
+        // Redirect to Google Reviews
+        const reviewPageLink = userProfile?.review_page_link;
+        toast({
+          title: "🎉 Thank you for your feedback!",
+          description: "Redirecting you to leave a Google review...",
+        });
+        
+        if (reviewPageLink) {
+          setTimeout(() => {
+            window.open(reviewPageLink, '_blank');
+          }, 2000);
+        } else {
+          toast({
+            title: "Review page not configured",
+            description: "Please ask the business owner to set up the review page link in settings.",
+            variant: "destructive"
+          });
+        }
+      } else {
+        // Show success toast for low ratings before showing "We're Sorry" page
+        toast({
+          title: "🎉 Thank you for your feedback!",
+          description: "Your feedback has been submitted successfully.",
+        });
+        
+        // Show "We're Sorry" page after a brief delay
+        setTimeout(() => {
+          setIsSubmitted(true);
+        }, 1500);
+      }
+    } catch (error) {
+      console.error("Error submitting feedback:", error);
+      setIsSubmitting(false);
+      toast({
+        title: "⚠️ Something went wrong. Please try again.",
+        description: "There was an error submitting your feedback.",
+        variant: "destructive"
+      });
     }
   };
 

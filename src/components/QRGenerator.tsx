@@ -104,17 +104,18 @@ const QRGenerator = () => {
               </Button>
             </>
           ) : (
-            <div className="text-center space-y-4">
+            <div className="flex flex-col items-center space-y-4 w-full">
               <div id="qr-container" className="p-4 bg-white rounded-md shadow inline-block">
                 <QRCodeCanvas
                   value={qrData}
                   size={256}
                   level="M"
                   includeMargin={true}
+                  className="max-w-full h-auto"
                 />
               </div>
               
-              <div className="space-y-2">
+              <div className="space-y-2 text-center">
                 <p className="text-sm text-muted-foreground">
                   QR Code for: <span className="font-semibold">{businessName}</span>
                 </p>
@@ -123,20 +124,20 @@ const QRGenerator = () => {
                 </p>
               </div>
 
-              <div className="space-y-2">
+              <div className="space-y-2 w-full">
                 <Label htmlFor="qrLink">QR Code Link</Label>
                 <Input
                   id="qrLink"
                   value={qrData}
                   readOnly
-                  className="bg-white text-gray-800 border-border"
+                  className="w-full break-all p-2 rounded bg-white text-gray-800 border-border text-xs sm:text-sm"
                 />
               </div>
 
-              <div className="flex gap-2 justify-center">
+              <div className="flex flex-col md:flex-row gap-2 w-full">
                 <Button
                   onClick={downloadPDF}
-                  className="trustqr-emerald-gradient text-white hover:opacity-90"
+                  className="w-full trustqr-emerald-gradient text-white hover:opacity-90"
                 >
                   <Download className="w-4 h-4 mr-2" />
                   Download PDF
@@ -144,7 +145,7 @@ const QRGenerator = () => {
                 <Button
                   onClick={handleReset}
                   variant="outline"
-                  className="border-border"
+                  className="w-full border-border"
                 >
                   <RotateCcw className="w-4 h-4 mr-2" />
                   Generate New

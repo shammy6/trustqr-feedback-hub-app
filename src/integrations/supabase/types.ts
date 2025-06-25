@@ -9,27 +9,60 @@ export type Json =
 export type Database = {
   public: {
     Tables: {
+      click_events: {
+        Row: {
+          business_name: string | null
+          feedback_type: string | null
+          id: string
+          timestamp: string | null
+          user_agent: string | null
+        }
+        Insert: {
+          business_name?: string | null
+          feedback_type?: string | null
+          id?: string
+          timestamp?: string | null
+          user_agent?: string | null
+        }
+        Update: {
+          business_name?: string | null
+          feedback_type?: string | null
+          id?: string
+          timestamp?: string | null
+          user_agent?: string | null
+        }
+        Relationships: []
+      }
       users: {
         Row: {
+          alert_email: string | null
+          business_logo: string | null
           business_name: string
           created_at: string
           email: string
           id: string
           name: string
+          review_page_link: string | null
         }
         Insert: {
+          alert_email?: string | null
+          business_logo?: string | null
           business_name: string
           created_at?: string
           email: string
           id: string
           name: string
+          review_page_link?: string | null
         }
         Update: {
+          alert_email?: string | null
+          business_logo?: string | null
           business_name?: string
           created_at?: string
           email?: string
           id?: string
           name?: string
+          review_page_link?: string | null
         }
         Relationships: []
       }

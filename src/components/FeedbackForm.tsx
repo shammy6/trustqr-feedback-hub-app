@@ -1,3 +1,4 @@
+
 import { useState } from "react";
 import { useParams } from "react-router-dom";
 import { Button } from "@/components/ui/button";
@@ -22,6 +23,12 @@ const FeedbackForm = () => {
   const [isSubmitted, setIsSubmitted] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const { toast } = useToast();
+
+  // Helper function to validate UUID format
+  const isValidUUID = (str: string) => {
+    const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+    return uuidRegex.test(str);
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -52,13 +59,16 @@ const FeedbackForm = () => {
     setIsSubmitting(true);
 
     try {
-      let businessId = id;
+      let businessId: string;
       
       console.log("Processing business ID...");
       
-      // If the ID contains underscore, it might be encoded
-      if (id.includes('_')) {
-        console.log("ID contains underscore, attempting to decode...");
+      // Check if ID is already a valid UUID
+      if (isValidUUID(id)) {
+        console.log("ID is already a valid UUID, using directly");
+        businessId = id;
+      } else if (id.includes('_')) {
+        console.log("ID contains underscore, attempting to decode and lookup...");
         try {
           const encodedPart = id.split('_')[0];
           console.log("Encoded part:", encodedPart);
@@ -78,26 +88,35 @@ const FeedbackForm = () => {
 
           if (userError) {
             console.error("Business lookup error:", userError);
-            throw new Error(`Business lookup failed: ${userError.message}`);
+            throw new Error("Business not found. Please check the QR code and try again.");
           }
           
           if (!businessUser) {
             console.error("No business found with name:", decodedName);
-            throw new Error("Business not found");
+            throw new Error("Business not found. Please check the QR code and try again.");
           }
           
           businessId = businessUser.id;
           console.log("Found business ID:", businessId);
         } catch (decodeError) {
           console.error("Error decoding business ID:", decodeError);
-          console.log("Treating ID as direct business_id");
-          // If decoding fails, treat the ID as a direct business_id
+          if (decodeError instanceof Error && decodeError.message.includes("Business not found")) {
+            throw decodeError;
+          }
+          throw new Error("Invalid QR code format. Please try scanning the QR code again.");
         }
       } else {
-        console.log("Using ID directly as business_id");
+        console.error("ID format not recognized:", id);
+        throw new Error("Invalid QR code format. Please try scanning the QR code again.");
       }
 
       console.log("Final business_id for submission:", businessId);
+
+      // Validate the final business ID is a UUID
+      if (!isValidUUID(businessId)) {
+        console.error("Final business ID is not a valid UUID:", businessId);
+        throw new Error("Invalid business identifier. Please try scanning the QR code again.");
+      }
 
       // Prepare review data
       const reviewData = {

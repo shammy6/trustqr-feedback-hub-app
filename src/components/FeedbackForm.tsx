@@ -1,4 +1,6 @@
+
 import { useState } from "react";
+import { useParams } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -7,10 +9,10 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useToast } from "@/hooks/use-toast";
-import { useAuth } from "./auth/AuthProvider";
-import { analyzeSentiment } from "@/utils/sentimentAnalyzer";
+import { supabase } from "@/integrations/supabase/client";
 
 const FeedbackForm = () => {
+  const { id } = useParams();
   const [formData, setFormData] = useState({
     customerName: "",
     customerEmail: "",
@@ -21,15 +23,38 @@ const FeedbackForm = () => {
   const [isSubmitted, setIsSubmitted] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const { toast } = useToast();
-  const { user, userProfile } = useAuth();
+
+  // Decode business ID from URL parameter
+  const getBusinessId = () => {
+    if (!id) return null;
+    try {
+      // URL format: /feedback/{businessName}_{feedbackType}
+      // We need to extract the business name and find the business ID
+      const decodedId = atob(id.split('_')[0]);
+      return decodedId;
+    } catch (error) {
+      console.error("Error decoding business ID:", error);
+      return null;
+    }
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    if (!formData.rating || !formData.feedback) {
+    if (!formData.rating || !formData.feedback || !formData.customerName) {
       toast({
         title: "Please complete the form",
-        description: "Rating and feedback are required",
+        description: "Name, rating and feedback are required",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    const businessName = getBusinessId();
+    if (!businessName) {
+      toast({
+        title: "Invalid QR code",
+        description: "Could not identify the business. Please try scanning the QR code again.",
         variant: "destructive"
       });
       return;
@@ -38,102 +63,73 @@ const FeedbackForm = () => {
     setIsSubmitting(true);
 
     try {
-      // Simulate loading for better UX
-      await new Promise(resolve => setTimeout(resolve, 800));
+      // First, find the business user by business name
+      const { data: businessUser, error: userError } = await supabase
+        .from('users')
+        .select('id')
+        .eq('business_name', businessName)
+        .single();
+
+      if (userError || !businessUser) {
+        throw new Error("Business not found");
+      }
+
+      // Submit the review to the reviews table
+      const { error: reviewError } = await supabase
+        .from('reviews')
+        .insert({
+          business_id: businessUser.id,
+          customer_name: formData.customerName,
+          customer_email: formData.customerEmail || null,
+          rating: parseInt(formData.rating),
+          review_text: formData.feedback
+        });
+
+      if (reviewError) {
+        throw reviewError;
+      }
+
+      // Show success toast
+      toast({
+        title: "🎉 Thank you for your feedback!",
+        description: "Your review has been submitted successfully.",
+      });
 
       const rating = parseInt(formData.rating);
       
-      // Analyze sentiment
-      const sentimentResult = analyzeSentiment(formData.feedback);
-      
-      console.log("Feedback submitted:", {
-        ...formData,
-        rating,
-        sentiment: sentimentResult,
-        timestamp: new Date().toISOString(),
-        businessId: user?.email
-      });
-      
-      // Store in localStorage for AlertSystem to pick up (low ratings only)
-      if (rating <= 3) {
-        const existingAlerts = JSON.parse(localStorage.getItem('feedbackAlerts') || '[]');
-        const newAlert = {
-          id: Date.now().toString(),
-          type: rating === 1 ? 'urgent' : 'low_rating',
-          customerName: formData.customerName || 'Anonymous Customer',
-          customerEmail: formData.customerEmail || 'No email provided',
-          rating: rating,
-          feedback: formData.feedback,
-          timestamp: 'Just now',
-          reviewDate: new Date().toISOString(),
-          isRead: false,
-          severity: rating === 1 ? 'high' : rating === 2 ? 'high' : 'medium',
-          wouldRecommend: formData.wouldRecommend,
-          sentiment: sentimentResult.sentiment,
-          sentimentEmoji: sentimentResult.emoji,
-          sentimentSummary: sentimentResult.summary,
-          sentimentConfidence: sentimentResult.confidence
-        };
-        
-        existingAlerts.unshift(newAlert);
-        localStorage.setItem('feedbackAlerts', JSON.stringify(existingAlerts));
-        
-        // Trigger a custom event to notify AlertSystem immediately
-        window.dispatchEvent(new CustomEvent('newFeedbackAlert', { detail: newAlert }));
-      }
+      // Simulate loading for better UX
+      await new Promise(resolve => setTimeout(resolve, 800));
       
       setIsSubmitting(false);
 
       if (rating >= 4) {
-        // Redirect to Google Reviews
-        const reviewPageLink = userProfile?.review_page_link;
-        toast({
-          title: "🎉 Thank you for your feedback!",
-          description: "Redirecting you to leave a Google review...",
-        });
-        
-        if (reviewPageLink) {
-          setTimeout(() => {
-            window.open(reviewPageLink, '_blank');
-          }, 2000);
-        } else {
-          toast({
-            title: "Review page not configured",
-            description: "Please ask the business owner to set up the review page link in settings.",
-            variant: "destructive"
-          });
-        }
+        // For high ratings, show success and maybe redirect to Google Reviews later
+        setTimeout(() => {
+          setIsSubmitted(true);
+        }, 2000);
       } else {
-        // Show success toast for low ratings before showing "We're Sorry" page
-        toast({
-          title: "🎉 Thank you for your feedback!",
-          description: "Your feedback has been submitted successfully.",
-        });
-        
-        // Show "We're Sorry" page after a brief delay
+        // For low ratings, show "We're Sorry" page
         setTimeout(() => {
           setIsSubmitted(true);
         }, 1500);
       }
     } catch (error) {
-      console.error("Error submitting feedback:", error);
+      console.error("Error submitting review:", error);
       setIsSubmitting(false);
       toast({
         title: "⚠️ Something went wrong. Please try again.",
-        description: "There was an error submitting your feedback.",
+        description: "There was an error submitting your review.",
         variant: "destructive"
       });
     }
   };
 
-  const handleAdditionalFeedbackSubmit = () => {
+  const handleAdditionalFeedbackSubmit = async () => {
+    // For additional feedback, we could store it or just show confirmation
     toast({
       title: "Additional feedback submitted",
       description: "A manager will review your feedback and may contact you directly.",
     });
-    
-    // Store additional feedback
-    console.log("Additional feedback submitted for low rating");
   };
 
   const renderStars = (rating: number) => {
@@ -175,6 +171,31 @@ const FeedbackForm = () => {
   }
 
   if (isSubmitted) {
+    const rating = parseInt(formData.rating);
+    
+    if (rating >= 4) {
+      return (
+        <div className="min-h-screen bg-background flex items-center justify-center p-4">
+          <Card className="w-full max-w-md trustqr-card animate-fade-in">
+            <CardHeader className="text-center">
+              <div className="w-16 h-16 mx-auto mb-4 rounded-full bg-green-500/20 flex items-center justify-center animate-scale-in">
+                <span className="text-2xl">🎉</span>
+              </div>
+              <CardTitle className="text-xl text-green-400">Thank You!</CardTitle>
+              <CardDescription>
+                We appreciate your positive feedback!
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4 text-center">
+              <p className="text-sm text-muted-foreground">
+                Your review helps us continue providing excellent service.
+              </p>
+            </CardContent>
+          </Card>
+        </div>
+      );
+    }
+
     return (
       <div className="min-h-screen bg-background flex items-center justify-center p-4">
         <Card className="w-full max-w-md trustqr-card animate-fade-in">
@@ -235,7 +256,7 @@ const FeedbackForm = () => {
           <form onSubmit={handleSubmit} className="space-y-6">
             <div className="space-y-2">
               <Label htmlFor="customerName">
-                Your Name (Optional)
+                Your Name *
               </Label>
               <Input
                 id="customerName"
@@ -243,6 +264,7 @@ const FeedbackForm = () => {
                 value={formData.customerName}
                 onChange={(e) => setFormData({ ...formData, customerName: e.target.value })}
                 className="bg-input border-border transition-all duration-200 focus:ring-2 focus:ring-accent"
+                required
               />
             </div>
 
@@ -261,7 +283,7 @@ const FeedbackForm = () => {
             </div>
 
             <div className="space-y-3">
-              <Label>How would you rate your experience?</Label>
+              <Label>How would you rate your experience? *</Label>
               <div className="flex justify-center space-x-1">
                 {renderStars(parseInt(formData.rating) || 0)}
               </div>
@@ -272,7 +294,7 @@ const FeedbackForm = () => {
 
             <div className="space-y-2">
               <Label htmlFor="feedback">
-                Tell us about your experience
+                Tell us about your experience *
               </Label>
               <Textarea
                 id="feedback"
@@ -311,7 +333,7 @@ const FeedbackForm = () => {
               className="w-full trustqr-emerald-gradient text-white hover:opacity-90 transition-all duration-200 hover:scale-105"
               disabled={isSubmitting}
             >
-              Submit Feedback
+              Submit Review
             </Button>
           </form>
         </CardContent>

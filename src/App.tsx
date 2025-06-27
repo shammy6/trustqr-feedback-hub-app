@@ -29,20 +29,24 @@ const AppContent = () => {
     );
   }
 
-  if (!user) {
-    return <AuthPage />;
-  }
-
   return (
     <BrowserRouter>
       <Routes>
-        <Route path="/" element={
-          <ProtectedRoute>
-            <Index />
-          </ProtectedRoute>
-        } />
+        {/* Public feedback route - no authentication required */}
         <Route path="/feedback/:id" element={<Feedback />} />
         <Route path="/auth" element={<AuthPage />} />
+        
+        {/* Protected routes */}
+        <Route path="/" element={
+          user ? (
+            <ProtectedRoute>
+              <Index />
+            </ProtectedRoute>
+          ) : (
+            <AuthPage />
+          )
+        } />
+        
         {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
         <Route path="*" element={<NotFound />} />
       </Routes>

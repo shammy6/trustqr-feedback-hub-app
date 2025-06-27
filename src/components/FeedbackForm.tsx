@@ -26,6 +26,10 @@ const FeedbackForm = () => {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
+    console.log("=== REVIEW SUBMISSION START ===");
+    console.log("URL ID parameter:", id);
+    console.log("Form data:", formData);
+    
     if (!formData.rating || !formData.feedback || !formData.customerName) {
       toast({
         title: "Please complete the form",
@@ -36,6 +40,7 @@ const FeedbackForm = () => {
     }
 
     if (!id) {
+      console.error("No ID parameter in URL");
       toast({
         title: "Invalid QR code",
         description: "Could not identify the business. Please try scanning the QR code again.",
@@ -47,55 +52,84 @@ const FeedbackForm = () => {
     setIsSubmitting(true);
 
     try {
-      // The ID parameter should be the business_id directly
-      // For now, let's try to handle both cases - direct business_id or encoded business name
       let businessId = id;
       
-      // If the ID looks like it might be encoded (contains underscore), try to decode
+      console.log("Processing business ID...");
+      
+      // If the ID contains underscore, it might be encoded
       if (id.includes('_')) {
+        console.log("ID contains underscore, attempting to decode...");
         try {
-          const decodedName = atob(id.split('_')[0]);
+          const encodedPart = id.split('_')[0];
+          console.log("Encoded part:", encodedPart);
+          
+          const decodedName = atob(encodedPart);
           console.log("Decoded business name:", decodedName);
           
           // Look up the business by name
+          console.log("Looking up business by name in database...");
           const { data: businessUser, error: userError } = await supabase
             .from('users')
-            .select('id')
+            .select('id, business_name')
             .eq('business_name', decodedName)
             .single();
 
-          if (userError || !businessUser) {
+          console.log("Business lookup result:", { businessUser, userError });
+
+          if (userError) {
             console.error("Business lookup error:", userError);
+            throw new Error(`Business lookup failed: ${userError.message}`);
+          }
+          
+          if (!businessUser) {
+            console.error("No business found with name:", decodedName);
             throw new Error("Business not found");
           }
           
           businessId = businessUser.id;
+          console.log("Found business ID:", businessId);
         } catch (decodeError) {
           console.error("Error decoding business ID:", decodeError);
+          console.log("Treating ID as direct business_id");
           // If decoding fails, treat the ID as a direct business_id
         }
+      } else {
+        console.log("Using ID directly as business_id");
       }
 
-      console.log("Submitting review for business ID:", businessId);
+      console.log("Final business_id for submission:", businessId);
+
+      // Prepare review data
+      const reviewData = {
+        business_id: businessId,
+        customer_name: formData.customerName,
+        customer_email: formData.customerEmail || null,
+        rating: parseInt(formData.rating),
+        review_text: formData.feedback
+      };
+      
+      console.log("Review data to insert:", reviewData);
 
       // Submit the review to the reviews table
+      console.log("Inserting review into database...");
       const { data, error: reviewError } = await supabase
         .from('reviews')
-        .insert({
-          business_id: businessId,
-          customer_name: formData.customerName,
-          customer_email: formData.customerEmail || null,
-          rating: parseInt(formData.rating),
-          review_text: formData.feedback
-        })
+        .insert(reviewData)
         .select();
+
+      console.log("Insert result:", { data, reviewError });
 
       if (reviewError) {
         console.error("Review submission error:", reviewError);
-        throw reviewError;
+        throw new Error(`Database error: ${reviewError.message}`);
       }
 
-      console.log("Review submitted successfully:", data);
+      if (!data || data.length === 0) {
+        console.error("No data returned from insert");
+        throw new Error("Review was not saved");
+      }
+
+      console.log("Review submitted successfully:", data[0]);
 
       // Show success toast
       toast({
@@ -122,7 +156,11 @@ const FeedbackForm = () => {
         }, 1500);
       }
     } catch (error) {
-      console.error("Error submitting review:", error);
+      console.error("=== REVIEW SUBMISSION ERROR ===");
+      console.error("Error details:", error);
+      console.error("Error message:", error instanceof Error ? error.message : "Unknown error");
+      console.error("=== END ERROR ===");
+      
       setIsSubmitting(false);
       toast({
         title: "⚠️ Something went wrong. Please try again.",

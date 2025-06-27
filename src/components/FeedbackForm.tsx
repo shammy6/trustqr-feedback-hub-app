@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { useParams } from "react-router-dom";
 import { Button } from "@/components/ui/button";
@@ -24,20 +23,6 @@ const FeedbackForm = () => {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const { toast } = useToast();
 
-  // Decode business ID from URL parameter
-  const getBusinessId = () => {
-    if (!id) return null;
-    try {
-      // URL format: /feedback/{businessName}_{feedbackType}
-      // We need to extract the business name and find the business ID
-      const decodedId = atob(id.split('_')[0]);
-      return decodedId;
-    } catch (error) {
-      console.error("Error decoding business ID:", error);
-      return null;
-    }
-  };
-
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
@@ -50,8 +35,7 @@ const FeedbackForm = () => {
       return;
     }
 
-    const businessName = getBusinessId();
-    if (!businessName) {
+    if (!id) {
       toast({
         title: "Invalid QR code",
         description: "Could not identify the business. Please try scanning the QR code again.",
@@ -63,31 +47,55 @@ const FeedbackForm = () => {
     setIsSubmitting(true);
 
     try {
-      // First, find the business user by business name
-      const { data: businessUser, error: userError } = await supabase
-        .from('users')
-        .select('id')
-        .eq('business_name', businessName)
-        .single();
+      // The ID parameter should be the business_id directly
+      // For now, let's try to handle both cases - direct business_id or encoded business name
+      let businessId = id;
+      
+      // If the ID looks like it might be encoded (contains underscore), try to decode
+      if (id.includes('_')) {
+        try {
+          const decodedName = atob(id.split('_')[0]);
+          console.log("Decoded business name:", decodedName);
+          
+          // Look up the business by name
+          const { data: businessUser, error: userError } = await supabase
+            .from('users')
+            .select('id')
+            .eq('business_name', decodedName)
+            .single();
 
-      if (userError || !businessUser) {
-        throw new Error("Business not found");
+          if (userError || !businessUser) {
+            console.error("Business lookup error:", userError);
+            throw new Error("Business not found");
+          }
+          
+          businessId = businessUser.id;
+        } catch (decodeError) {
+          console.error("Error decoding business ID:", decodeError);
+          // If decoding fails, treat the ID as a direct business_id
+        }
       }
 
+      console.log("Submitting review for business ID:", businessId);
+
       // Submit the review to the reviews table
-      const { error: reviewError } = await supabase
+      const { data, error: reviewError } = await supabase
         .from('reviews')
         .insert({
-          business_id: businessUser.id,
+          business_id: businessId,
           customer_name: formData.customerName,
           customer_email: formData.customerEmail || null,
           rating: parseInt(formData.rating),
           review_text: formData.feedback
-        });
+        })
+        .select();
 
       if (reviewError) {
+        console.error("Review submission error:", reviewError);
         throw reviewError;
       }
+
+      console.log("Review submitted successfully:", data);
 
       // Show success toast
       toast({
@@ -118,7 +126,7 @@ const FeedbackForm = () => {
       setIsSubmitting(false);
       toast({
         title: "⚠️ Something went wrong. Please try again.",
-        description: "There was an error submitting your review.",
+        description: error instanceof Error ? error.message : "There was an error submitting your review.",
         variant: "destructive"
       });
     }

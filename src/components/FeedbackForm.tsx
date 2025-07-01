@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { useParams } from "react-router-dom";
 import { Button } from "@/components/ui/button";
@@ -30,10 +29,38 @@ const FeedbackForm = () => {
     return uuidRegex.test(str);
   };
 
+  // Helper function to detect mobile device
+  const isMobileDevice = () => {
+    return /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+  };
+
+  // Enhanced base64 decoding with error handling
+  const safeBase64Decode = (encodedString: string) => {
+    try {
+      // Handle URL-safe base64 encoding
+      const base64 = encodedString.replace(/-/g, '+').replace(/_/g, '/');
+      // Add padding if needed
+      const padded = base64 + '='.repeat((4 - base64.length % 4) % 4);
+      return atob(padded);
+    } catch (error) {
+      console.error("Base64 decode error:", error);
+      // Try direct atob as fallback
+      try {
+        return atob(encodedString);
+      } catch (fallbackError) {
+        console.error("Fallback base64 decode also failed:", fallbackError);
+        throw new Error("Failed to decode business identifier");
+      }
+    }
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
     console.log("=== REVIEW SUBMISSION START ===");
+    console.log("Device type:", isMobileDevice() ? "Mobile" : "Desktop");
+    console.log("User agent:", navigator.userAgent);
+    console.log("Current URL:", window.location.href);
     console.log("URL ID parameter:", id);
     console.log("Form data:", formData);
     
@@ -62,6 +89,9 @@ const FeedbackForm = () => {
       let businessId: string;
       
       console.log("Processing business ID...");
+      console.log("Raw ID from URL:", id);
+      console.log("ID length:", id.length);
+      console.log("ID contains underscore:", id.includes('_'));
       
       // Check if ID is already a valid UUID
       if (isValidUUID(id)) {
@@ -72,31 +102,43 @@ const FeedbackForm = () => {
         try {
           const encodedPart = id.split('_')[0];
           console.log("Encoded part:", encodedPart);
+          console.log("Encoded part length:", encodedPart.length);
           
-          const decodedName = atob(encodedPart);
+          const decodedName = safeBase64Decode(encodedPart);
           console.log("Decoded business name:", decodedName);
+          console.log("Decoded name length:", decodedName.length);
           
-          // Look up the business by name
+          // Look up the business by name with case-insensitive search
           console.log("Looking up business by name in database...");
           const { data: businessUser, error: userError } = await supabase
             .from('users')
             .select('id, business_name')
-            .eq('business_name', decodedName)
+            .ilike('business_name', decodedName)
             .single();
 
           console.log("Business lookup result:", { businessUser, userError });
 
           if (userError) {
             console.error("Business lookup error:", userError);
-            throw new Error("Business not found. Please check the QR code and try again.");
+            // Try exact match as fallback
+            console.log("Trying exact match fallback...");
+            const { data: exactMatch, error: exactError } = await supabase
+              .from('users')
+              .select('id, business_name')
+              .eq('business_name', decodedName)
+              .single();
+            
+            console.log("Exact match result:", { exactMatch, exactError });
+            
+            if (exactError || !exactMatch) {
+              throw new Error("Business not found. Please check the QR code and try again.");
+            }
+            
+            businessId = exactMatch.id;
+          } else {
+            businessId = businessUser.id;
           }
           
-          if (!businessUser) {
-            console.error("No business found with name:", decodedName);
-            throw new Error("Business not found. Please check the QR code and try again.");
-          }
-          
-          businessId = businessUser.id;
           console.log("Found business ID:", businessId);
         } catch (decodeError) {
           console.error("Error decoding business ID:", decodeError);
@@ -106,8 +148,46 @@ const FeedbackForm = () => {
           throw new Error("Invalid QR code format. Please try scanning the QR code again.");
         }
       } else {
-        console.error("ID format not recognized:", id);
-        throw new Error("Invalid QR code format. Please try scanning the QR code again.");
+        // Handle cases where the ID might be a business name that was already decoded by mobile browsers
+        console.log("ID format not recognized as UUID or encoded, checking if it's a business name...");
+        console.log("Attempting direct business name lookup...");
+        
+        try {
+          const { data: businessUser, error: userError } = await supabase
+            .from('users')
+            .select('id, business_name')
+            .ilike('business_name', id)
+            .single();
+
+          console.log("Direct name lookup result:", { businessUser, userError });
+
+          if (userError || !businessUser) {
+            // Try URL decoding the ID in case it was partially encoded
+            const urlDecodedId = decodeURIComponent(id);
+            console.log("Trying URL decoded version:", urlDecodedId);
+            
+            const { data: decodedMatch, error: decodedError } = await supabase
+              .from('users')
+              .select('id, business_name')
+              .ilike('business_name', urlDecodedId)
+              .single();
+            
+            console.log("URL decoded lookup result:", { decodedMatch, decodedError });
+            
+            if (decodedError || !decodedMatch) {
+              throw new Error("Business not found. Please check the QR code and try again.");
+            }
+            
+            businessId = decodedMatch.id;
+          } else {
+            businessId = businessUser.id;
+          }
+          
+          console.log("Found business ID via name lookup:", businessId);
+        } catch (nameError) {
+          console.error("Business name lookup failed:", nameError);
+          throw new Error("Invalid QR code format. Please try scanning the QR code again.");
+        }
       }
 
       console.log("Final business_id for submission:", businessId);
@@ -178,6 +258,8 @@ const FeedbackForm = () => {
       console.error("=== REVIEW SUBMISSION ERROR ===");
       console.error("Error details:", error);
       console.error("Error message:", error instanceof Error ? error.message : "Unknown error");
+      console.error("Device type:", isMobileDevice() ? "Mobile" : "Desktop");
+      console.error("Current URL:", window.location.href);
       console.error("=== END ERROR ===");
       
       setIsSubmitting(false);

@@ -34,6 +34,18 @@ const FeedbackForm = () => {
     return /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
   };
 
+  // Helper function to create slug from business name
+  const slugify = (text: string) => {
+    return text
+      .toLowerCase()
+      .trim()
+      .replace(/\s+/g, '-')
+      .replace(/[^\w\-]+/g, '')
+      .replace(/\-\-+/g, '-')
+      .replace(/^-+/, '')
+      .replace(/-+$/, '');
+  };
+
   // Enhanced base64 decoding with error handling
   const safeBase64Decode = (encodedString: string) => {
     try {
@@ -52,6 +64,129 @@ const FeedbackForm = () => {
         throw new Error("Failed to decode business identifier");
       }
     }
+  };
+
+  // Enhanced business lookup with multiple fallback attempts
+  const findBusinessByName = async (businessName: string) => {
+    console.log("=== BUSINESS LOOKUP PROCESS START ===");
+    console.log("Target Business Name:", businessName);
+    
+    // Step 1: Initial case-insensitive lookup
+    console.log("Step: Initial Lookup");
+    console.log("Search Query:", businessName);
+    
+    try {
+      const { data: initialResult, error: initialError, status: initialStatus } = await supabase
+        .from('users')
+        .select('id, business_name')
+        .ilike('business_name', businessName);
+      
+      console.log("API Status:", initialStatus);
+      console.log("API Response:", { data: initialResult, error: initialError });
+      
+      if (initialError) {
+        console.log("Initial lookup error:", initialError);
+        if (initialStatus === 406) {
+          console.log("406 Error: The server could not process the request. Possible reasons: incorrect business name, missing database record, or unsupported request format.");
+        } else if (initialStatus !== 200) {
+          console.log(`API Error: Unexpected status code ${initialStatus}.`);
+        }
+      } else if (initialResult && initialResult.length > 0) {
+        console.log("✅ Initial lookup successful");
+        return initialResult[0].id;
+      }
+    } catch (networkError) {
+      console.error("Network error during initial lookup:", networkError);
+    }
+
+    // Step 2: Fallback - Exact match search
+    console.log("Step: Fallback Attempt - Exact Match");
+    console.log("Search Query:", businessName);
+    
+    try {
+      const { data: exactResult, error: exactError, status: exactStatus } = await supabase
+        .from('users')
+        .select('id, business_name')
+        .eq('business_name', businessName);
+      
+      console.log("API Status:", exactStatus);
+      console.log("API Response:", { data: exactResult, error: exactError });
+      
+      if (exactError) {
+        console.log("Exact match lookup error:", exactError);
+        if (exactStatus === 406) {
+          console.log("406 Error: The server could not process the request. Possible reasons: incorrect business name, missing database record, or unsupported request format.");
+        } else if (exactStatus !== 200) {
+          console.log(`API Error: Unexpected status code ${exactStatus}.`);
+        }
+      } else if (exactResult && exactResult.length > 0) {
+        console.log("✅ Exact match fallback successful");
+        return exactResult[0].id;
+      }
+    } catch (networkError) {
+      console.error("Network error during exact match lookup:", networkError);
+    }
+
+    // Step 3: Fallback - Slugified version search
+    const slugifiedName = slugify(businessName);
+    console.log("Step: Fallback Attempt - Slugified Search");
+    console.log("Search Query:", slugifiedName);
+    
+    try {
+      const { data: slugResult, error: slugError, status: slugStatus } = await supabase
+        .from('users')
+        .select('id, business_name')
+        .ilike('business_name', `%${slugifiedName.replace(/-/g, ' ')}%`);
+      
+      console.log("API Status:", slugStatus);
+      console.log("API Response:", { data: slugResult, error: slugError });
+      
+      if (slugError) {
+        console.log("Slugified lookup error:", slugError);
+        if (slugStatus === 406) {
+          console.log("406 Error: The server could not process the request. Possible reasons: incorrect business name, missing database record, or unsupported request format.");
+        } else if (slugStatus !== 200) {
+          console.log(`API Error: Unexpected status code ${slugStatus}.`);
+        }
+      } else if (slugResult && slugResult.length > 0) {
+        console.log("✅ Slugified fallback successful");
+        return slugResult[0].id;
+      }
+    } catch (networkError) {
+      console.error("Network error during slugified lookup:", networkError);
+    }
+
+    // Step 4: Fallback - Partial/LIKE search
+    console.log("Step: Fallback Attempt - Partial Match");
+    console.log("Search Query:", `%${businessName}%`);
+    
+    try {
+      const { data: partialResult, error: partialError, status: partialStatus } = await supabase
+        .from('users')
+        .select('id, business_name')
+        .ilike('business_name', `%${businessName}%`);
+      
+      console.log("API Status:", partialStatus);
+      console.log("API Response:", { data: partialResult, error: partialError });
+      
+      if (partialError) {
+        console.log("Partial match lookup error:", partialError);
+        if (partialStatus === 406) {
+          console.log("406 Error: The server could not process the request. Possible reasons: incorrect business name, missing database record, or unsupported request format.");
+        } else if (partialStatus !== 200) {
+          console.log(`API Error: Unexpected status code ${partialStatus}.`);
+        }
+      } else if (partialResult && partialResult.length > 0) {
+        console.log("✅ Partial match fallback successful");
+        return partialResult[0].id;
+      }
+    } catch (networkError) {
+      console.error("Network error during partial match lookup:", networkError);
+    }
+
+    console.log("❌ All fallback attempts failed");
+    console.log("=== BUSINESS LOOKUP PROCESS END ===");
+    return null;
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -108,86 +243,42 @@ const FeedbackForm = () => {
           console.log("Decoded business name:", decodedName);
           console.log("Decoded name length:", decodedName.length);
           
-          // Look up the business by name with case-insensitive search
-          console.log("Looking up business by name in database...");
-          const { data: businessUser, error: userError } = await supabase
-            .from('users')
-            .select('id, business_name')
-            .ilike('business_name', decodedName)
-            .single();
-
-          console.log("Business lookup result:", { businessUser, userError });
-
-          if (userError) {
-            console.error("Business lookup error:", userError);
-            // Try exact match as fallback
-            console.log("Trying exact match fallback...");
-            const { data: exactMatch, error: exactError } = await supabase
-              .from('users')
-              .select('id, business_name')
-              .eq('business_name', decodedName)
-              .single();
-            
-            console.log("Exact match result:", { exactMatch, exactError });
-            
-            if (exactError || !exactMatch) {
-              throw new Error("Business not found. Please check the QR code and try again.");
-            }
-            
-            businessId = exactMatch.id;
-          } else {
-            businessId = businessUser.id;
+          // Use enhanced business lookup with fallbacks
+          const foundBusinessId = await findBusinessByName(decodedName);
+          
+          if (!foundBusinessId) {
+            throw new Error("We couldn't find this business. Please contact the business owner to verify the QR code.");
           }
           
+          businessId = foundBusinessId;
           console.log("Found business ID:", businessId);
         } catch (decodeError) {
-          console.error("Error decoding business ID:", decodeError);
-          if (decodeError instanceof Error && decodeError.message.includes("Business not found")) {
-            throw decodeError;
-          }
-          throw new Error("Invalid QR code format. Please try scanning the QR code again.");
+          console.error("Error during business lookup:", decodeError);
+          throw new Error(decodeError instanceof Error ? decodeError.message : "We couldn't find this business. Please contact the business owner to verify the QR code.");
         }
       } else {
         // Handle cases where the ID might be a business name that was already decoded by mobile browsers
-        console.log("ID format not recognized as UUID or encoded, checking if it's a business name...");
-        console.log("Attempting direct business name lookup...");
+        console.log("ID format not recognized as UUID or encoded, attempting business name lookup...");
         
-        try {
-          const { data: businessUser, error: userError } = await supabase
-            .from('users')
-            .select('id, business_name')
-            .ilike('business_name', id)
-            .single();
-
-          console.log("Direct name lookup result:", { businessUser, userError });
-
-          if (userError || !businessUser) {
-            // Try URL decoding the ID in case it was partially encoded
-            const urlDecodedId = decodeURIComponent(id);
-            console.log("Trying URL decoded version:", urlDecodedId);
-            
-            const { data: decodedMatch, error: decodedError } = await supabase
-              .from('users')
-              .select('id, business_name')
-              .ilike('business_name', urlDecodedId)
-              .single();
-            
-            console.log("URL decoded lookup result:", { decodedMatch, decodedError });
-            
-            if (decodedError || !decodedMatch) {
-              throw new Error("Business not found. Please check the QR code and try again.");
-            }
-            
-            businessId = decodedMatch.id;
-          } else {
-            businessId = businessUser.id;
+        // Try URL decoding first
+        const urlDecodedId = decodeURIComponent(id);
+        console.log("URL decoded ID:", urlDecodedId);
+        
+        // Use enhanced business lookup with fallbacks
+        const foundBusinessId = await findBusinessByName(urlDecodedId);
+        
+        if (!foundBusinessId) {
+          // Try with original ID as fallback
+          const originalFoundId = await findBusinessByName(id);
+          if (!originalFoundId) {
+            throw new Error("We couldn't find this business. Please contact the business owner to verify the QR code.");
           }
-          
-          console.log("Found business ID via name lookup:", businessId);
-        } catch (nameError) {
-          console.error("Business name lookup failed:", nameError);
-          throw new Error("Invalid QR code format. Please try scanning the QR code again.");
+          businessId = originalFoundId;
+        } else {
+          businessId = foundBusinessId;
         }
+        
+        console.log("Found business ID via name lookup:", businessId);
       }
 
       console.log("Final business_id for submission:", businessId);
@@ -263,11 +354,29 @@ const FeedbackForm = () => {
       console.error("=== END ERROR ===");
       
       setIsSubmitting(false);
-      toast({
-        title: "⚠️ Something went wrong. Please try again.",
-        description: error instanceof Error ? error.message : "There was an error submitting your review.",
-        variant: "destructive"
-      });
+      
+      // Check if it's a business not found error or a connection error
+      const errorMessage = error instanceof Error ? error.message : "Unknown error occurred";
+      
+      if (errorMessage.includes("couldn't find this business")) {
+        toast({
+          title: "⚠️ Business Not Found",
+          description: errorMessage,
+          variant: "destructive"
+        });
+      } else if (errorMessage.includes("network") || errorMessage.includes("connection")) {
+        toast({
+          title: "⚠️ Connection Problem",
+          description: "There was a problem connecting to the business. Please try again later or contact support.",
+          variant: "destructive"
+        });
+      } else {
+        toast({
+          title: "⚠️ Something went wrong. Please try again.",
+          description: errorMessage,
+          variant: "destructive"
+        });
+      }
     }
   };
 

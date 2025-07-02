@@ -8,6 +8,7 @@ interface UserProfile {
   name: string;
   business_name: string;
   email: string;
+  business_uuid: string;
   review_page_link?: string;
   alert_email?: string;
   business_logo?: string;
@@ -70,7 +71,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       // Now select all columns including the new ones
       const { data, error } = await supabase
         .from('users')
-        .select('id, name, business_name, email, review_page_link, alert_email, business_logo')
+        .select('id, name, business_name, email, business_uuid, review_page_link, alert_email, business_logo')
         .eq('id', userId)
         .single();
 
@@ -83,6 +84,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           name: data.name,
           business_name: data.business_name,
           email: data.email,
+          business_uuid: data.business_uuid,
           review_page_link: data.review_page_link,
           alert_email: data.alert_email,
           business_logo: data.business_logo,

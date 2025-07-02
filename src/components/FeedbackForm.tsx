@@ -66,9 +66,49 @@ const FeedbackForm = () => {
     }
   };
 
-  // Enhanced business lookup with multiple fallback attempts
+  // NEW: UUID-based business lookup
+  const findBusinessByUUID = async (uuid: string) => {
+    console.log("=== UUID BUSINESS LOOKUP START ===");
+    console.log("Target UUID:", uuid);
+    
+    try {
+      const { data: uuidResult, error: uuidError, status: uuidStatus } = await supabase
+        .from('users')
+        .select('id, business_name, business_uuid')
+        .eq('business_uuid', uuid)
+        .single();
+      
+      console.log("UUID Lookup - API Status:", uuidStatus);
+      console.log("UUID Lookup - API Response:", { data: uuidResult, error: uuidError });
+      
+      if (uuidError) {
+        console.log("UUID lookup error:", uuidError);
+        if (uuidStatus === 406) {
+          console.log("406 Error: The server could not process the request. UUID may not exist in database.");
+        } else if (uuidStatus !== 200) {
+          console.log(`API Error: Unexpected status code ${uuidStatus}.`);
+        }
+        return null;
+      }
+      
+      if (uuidResult) {
+        console.log("✅ UUID lookup successful");
+        console.log("Found business:", uuidResult.business_name);
+        console.log("=== UUID BUSINESS LOOKUP END ===");
+        return uuidResult.id;
+      }
+    } catch (networkError) {
+      console.error("Network error during UUID lookup:", networkError);
+    }
+    
+    console.log("❌ UUID lookup failed");
+    console.log("=== UUID BUSINESS LOOKUP END ===");
+    return null;
+  };
+
+  // Enhanced business lookup with multiple fallback attempts (kept for backwards compatibility)
   const findBusinessByName = async (businessName: string) => {
-    console.log("=== BUSINESS LOOKUP PROCESS START ===");
+    console.log("=== BUSINESS NAME LOOKUP PROCESS START ===");
     console.log("Target Business Name:", businessName);
     
     // Step 1: Initial case-insensitive lookup
@@ -185,7 +225,7 @@ const FeedbackForm = () => {
     }
 
     console.log("❌ All fallback attempts failed");
-    console.log("=== BUSINESS LOOKUP PROCESS END ===");
+    console.log("=== BUSINESS NAME LOOKUP PROCESS END ===");
     return null;
   };
 
@@ -221,64 +261,74 @@ const FeedbackForm = () => {
     setIsSubmitting(true);
 
     try {
-      let businessId: string;
+      let businessId: string | null = null;
       
       console.log("Processing business ID...");
       console.log("Raw ID from URL:", id);
       console.log("ID length:", id.length);
-      console.log("ID contains underscore:", id.includes('_'));
+      console.log("Is Valid UUID:", isValidUUID(id));
       
-      // Check if ID is already a valid UUID
+      // NEW: Try UUID-based lookup first
       if (isValidUUID(id)) {
-        console.log("ID is already a valid UUID, using directly");
-        businessId = id;
-      } else if (id.includes('_')) {
-        console.log("ID contains underscore, attempting to decode and lookup...");
-        try {
-          const encodedPart = id.split('_')[0];
-          console.log("Encoded part:", encodedPart);
-          console.log("Encoded part length:", encodedPart.length);
+        console.log("=== ATTEMPTING UUID-BASED LOOKUP ===");
+        businessId = await findBusinessByUUID(id);
+        
+        if (businessId) {
+          console.log("✅ UUID-based lookup successful, business ID:", businessId);
+        } else {
+          console.log("❌ UUID-based lookup failed, falling back to legacy system");
+        }
+      }
+      
+      // Fallback to legacy system if UUID lookup failed or ID is not a UUID
+      if (!businessId) {
+        console.log("=== FALLING BACK TO LEGACY LOOKUP SYSTEM ===");
+        
+        if (id.includes('_')) {
+          console.log("ID contains underscore, attempting to decode and lookup...");
+          try {
+            const encodedPart = id.split('_')[0];
+            console.log("Encoded part:", encodedPart);
+            console.log("Encoded part length:", encodedPart.length);
+            
+            const decodedName = safeBase64Decode(encodedPart);
+            console.log("Decoded business name:", decodedName);
+            console.log("Decoded name length:", decodedName.length);
+            
+            // Use enhanced business lookup with fallbacks
+            businessId = await findBusinessByName(decodedName);
+            
+            if (businessId) {
+              console.log("✅ Legacy lookup successful via decoded name");
+            }
+          } catch (decodeError) {
+            console.error("Error during legacy business lookup:", decodeError);
+          }
+        } else {
+          // Handle cases where the ID might be a business name that was already decoded
+          console.log("ID format not recognized as UUID or encoded, attempting business name lookup...");
           
-          const decodedName = safeBase64Decode(encodedPart);
-          console.log("Decoded business name:", decodedName);
-          console.log("Decoded name length:", decodedName.length);
+          // Try URL decoding first
+          const urlDecodedId = decodeURIComponent(id);
+          console.log("URL decoded ID:", urlDecodedId);
           
           // Use enhanced business lookup with fallbacks
-          const foundBusinessId = await findBusinessByName(decodedName);
+          businessId = await findBusinessByName(urlDecodedId);
           
-          if (!foundBusinessId) {
-            throw new Error("We couldn't find this business. Please contact the business owner to verify the QR code.");
+          if (!businessId) {
+            // Try with original ID as fallback
+            businessId = await findBusinessByName(id);
           }
           
-          businessId = foundBusinessId;
-          console.log("Found business ID:", businessId);
-        } catch (decodeError) {
-          console.error("Error during business lookup:", decodeError);
-          throw new Error(decodeError instanceof Error ? decodeError.message : "We couldn't find this business. Please contact the business owner to verify the QR code.");
-        }
-      } else {
-        // Handle cases where the ID might be a business name that was already decoded by mobile browsers
-        console.log("ID format not recognized as UUID or encoded, attempting business name lookup...");
-        
-        // Try URL decoding first
-        const urlDecodedId = decodeURIComponent(id);
-        console.log("URL decoded ID:", urlDecodedId);
-        
-        // Use enhanced business lookup with fallbacks
-        const foundBusinessId = await findBusinessByName(urlDecodedId);
-        
-        if (!foundBusinessId) {
-          // Try with original ID as fallback
-          const originalFoundId = await findBusinessByName(id);
-          if (!originalFoundId) {
-            throw new Error("We couldn't find this business. Please contact the business owner to verify the QR code.");
+          if (businessId) {
+            console.log("✅ Legacy lookup successful via name lookup");
           }
-          businessId = originalFoundId;
-        } else {
-          businessId = foundBusinessId;
         }
-        
-        console.log("Found business ID via name lookup:", businessId);
+      }
+
+      // Final validation
+      if (!businessId) {
+        throw new Error("We couldn't find this business. Please contact the business owner to verify the QR code.");
       }
 
       console.log("Final business_id for submission:", businessId);
@@ -319,7 +369,7 @@ const FeedbackForm = () => {
         throw new Error("Review was not saved");
       }
 
-      console.log("Review submitted successfully:", data[0]);
+      console.log("✅ Review submitted successfully:", data[0]);
 
       // Show success toast
       toast({

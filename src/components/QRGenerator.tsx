@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -21,8 +20,21 @@ const QRGenerator = () => {
   const handleGenerateQR = async () => {
     if (!businessName || !feedbackType) return;
     
-    const feedbackUrl = `${window.location.origin}/feedback/${btoa(businessName)}_${feedbackType}`;
-    setQrData(feedbackUrl);
+    // Use the business_uuid from userProfile for the new UUID-based system
+    const businessUuid = userProfile?.business_uuid;
+    
+    if (businessUuid) {
+      // New UUID-based QR code format
+      const feedbackUrl = `${window.location.origin}/feedback/${businessUuid}`;
+      setQrData(feedbackUrl);
+      console.log('Generated UUID-based QR code:', feedbackUrl);
+    } else {
+      // Fallback to old format for backwards compatibility
+      const feedbackUrl = `${window.location.origin}/feedback/${btoa(businessName)}_${feedbackType}`;
+      setQrData(feedbackUrl);
+      console.log('Generated legacy QR code (no UUID available):', feedbackUrl);
+    }
+    
     setQrGenerated(true);
   };
 
@@ -122,6 +134,11 @@ const QRGenerator = () => {
                 <p className="text-xs text-muted-foreground">
                   Type: {feedbackType.charAt(0).toUpperCase() + feedbackType.slice(1)} Feedback
                 </p>
+                {userProfile?.business_uuid && (
+                  <p className="text-xs text-green-600 font-medium">
+                    ✓ UUID-based (Improved reliability)
+                  </p>
+                )}
               </div>
 
               <div className="space-y-2 w-full">

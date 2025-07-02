@@ -76,6 +76,7 @@ export type Database = {
           alert_email: string | null
           business_logo: string | null
           business_name: string
+          business_uuid: string
           created_at: string
           email: string
           id: string
@@ -86,6 +87,7 @@ export type Database = {
           alert_email?: string | null
           business_logo?: string | null
           business_name: string
+          business_uuid?: string
           created_at?: string
           email: string
           id: string
@@ -96,6 +98,7 @@ export type Database = {
           alert_email?: string | null
           business_logo?: string | null
           business_name?: string
+          business_uuid?: string
           created_at?: string
           email?: string
           id?: string

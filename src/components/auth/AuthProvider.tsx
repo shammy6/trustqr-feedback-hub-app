@@ -17,7 +17,7 @@ interface UserProfile {
 interface AuthContextType {
   user: User | null;
   userProfile: UserProfile | null;
-  signUp: (email: string, password: string, name: string, businessName: string) => Promise<{ error: any }>;
+  signUp: (email: string, password: string, name: string, businessName: string, businessUuid?: string) => Promise<{ error: any }>;
   signIn: (email: string, password: string) => Promise<{ error: any }>;
   signOut: () => Promise<void>;
   resendConfirmation: (email: string) => Promise<void>;
@@ -97,7 +97,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
   };
 
-  const signUp = async (email: string, password: string, name: string, businessName: string) => {
+  const signUp = async (email: string, password: string, name: string, businessName: string, businessUuid?: string) => {
     const { error } = await supabase.auth.signUp({
       email,
       password,
@@ -105,6 +105,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         data: {
           name,
           business_name: businessName,
+          business_uuid: businessUuid || crypto.randomUUID(),
         },
       },
     });

@@ -32,7 +32,11 @@ const LoginForm = ({ onToggleMode }: LoginFormProps) => {
           });
           return;
         }
-        await signUp(email, password, 'User', businessName);
+        
+        // Generate a UUID for the business
+        const businessUuid = crypto.randomUUID();
+        
+        await signUp(email, password, 'User', businessName, businessUuid);
         toast({
           title: "Account created successfully!",
           description: "Welcome to TrustQR"

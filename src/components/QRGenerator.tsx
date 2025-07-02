@@ -25,12 +25,12 @@ const QRGenerator = () => {
     
     if (businessUuid) {
       // New UUID-based QR code format
-      const feedbackUrl = `${window.location.origin}/feedback/${businessUuid}`;
+      const feedbackUrl = `https://trustqr.app/feedback/${businessUuid}`;
       setQrData(feedbackUrl);
       console.log('Generated UUID-based QR code:', feedbackUrl);
     } else {
       // Fallback to old format for backwards compatibility
-      const feedbackUrl = `${window.location.origin}/feedback/${btoa(businessName)}_${feedbackType}`;
+      const feedbackUrl = `https://trustqr.app/feedback/${btoa(businessName)}_${feedbackType}`;
       setQrData(feedbackUrl);
       console.log('Generated legacy QR code (no UUID available):', feedbackUrl);
     }

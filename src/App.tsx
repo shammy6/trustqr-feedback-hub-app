@@ -32,8 +32,9 @@ const AppContent = () => {
   return (
     <BrowserRouter>
       <Routes>
-        {/* Public feedback route - no authentication required */}
+        {/* Public feedback routes - no authentication required */}
         <Route path="/feedback/:id" element={<Feedback />} />
+        <Route path="/review/:id" element={<Feedback />} />
         <Route path="/auth" element={<AuthPage />} />
         
         {/* Protected routes */}

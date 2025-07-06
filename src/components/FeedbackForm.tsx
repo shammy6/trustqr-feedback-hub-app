@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useParams } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -9,6 +9,7 @@ import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
+import { trackPageView, trackQRScan } from "@/utils/trackPageView";
 
 const FeedbackForm = () => {
   const { id } = useParams();
@@ -22,6 +23,78 @@ const FeedbackForm = () => {
   const [isSubmitted, setIsSubmitted] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const { toast } = useToast();
+
+  // Track page views and QR scans when component loads
+  useEffect(() => {
+    const trackVisit = async () => {
+      if (!id) return;
+
+      try {
+        let businessUuid: string | null = null;
+
+        // Try to get business UUID from the URL parameter
+        if (isValidUUID(id)) {
+          // If ID is already a UUID, use it directly
+          businessUuid = id;
+        } else {
+          // Try to resolve business UUID from legacy format
+          let businessId: string | null = null;
+          
+          if (id.includes('_')) {
+            try {
+              const encodedPart = id.split('_')[0];
+              const decodedName = safeBase64Decode(encodedPart);
+              
+              // Look up business by name to get UUID
+              const { data } = await supabase
+                .from('users')
+                .select('business_uuid')
+                .ilike('business_name', decodedName)
+                .single();
+              
+              if (data) businessUuid = data.business_uuid;
+            } catch (error) {
+              console.error('Error resolving business UUID from legacy format:', error);
+            }
+          } else {
+            // Try direct name lookup
+            try {
+              const urlDecodedId = decodeURIComponent(id);
+              const { data } = await supabase
+                .from('users')
+                .select('business_uuid')
+                .ilike('business_name', urlDecodedId)
+                .single();
+              
+              if (data) businessUuid = data.business_uuid;
+            } catch (error) {
+              console.error('Error resolving business UUID from name:', error);
+            }
+          }
+        }
+
+        if (businessUuid) {
+          // Track page view
+          await trackPageView({ businessUuid });
+          
+          // If this looks like a QR code access, also track QR scan
+          // We can detect QR scan by checking referrer or URL parameters
+          const urlParams = new URLSearchParams(window.location.search);
+          const isQRAccess = urlParams.get('source') === 'qr' || 
+                            document.referrer === '' || 
+                            /qr|scan/i.test(document.referrer);
+          
+          if (isQRAccess) {
+            await trackQRScan({ businessUuid });
+          }
+        }
+      } catch (error) {
+        console.error('Error tracking page visit:', error);
+      }
+    };
+
+    trackVisit();
+  }, [id]);
 
   // Helper function to validate UUID format
   const isValidUUID = (str: string) => {

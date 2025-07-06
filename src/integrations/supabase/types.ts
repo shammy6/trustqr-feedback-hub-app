@@ -33,6 +33,54 @@ export type Database = {
         }
         Relationships: []
       }
+      page_views: {
+        Row: {
+          business_uuid: string
+          created_at: string
+          id: string
+          referrer: string | null
+          user_agent: string | null
+        }
+        Insert: {
+          business_uuid: string
+          created_at?: string
+          id?: string
+          referrer?: string | null
+          user_agent?: string | null
+        }
+        Update: {
+          business_uuid?: string
+          created_at?: string
+          id?: string
+          referrer?: string | null
+          user_agent?: string | null
+        }
+        Relationships: []
+      }
+      qr_scans: {
+        Row: {
+          business_uuid: string
+          created_at: string
+          id: string
+          scan_type: string | null
+          user_agent: string | null
+        }
+        Insert: {
+          business_uuid: string
+          created_at?: string
+          id?: string
+          scan_type?: string | null
+          user_agent?: string | null
+        }
+        Update: {
+          business_uuid?: string
+          created_at?: string
+          id?: string
+          scan_type?: string | null
+          user_agent?: string | null
+        }
+        Relationships: []
+      }
       reviews: {
         Row: {
           business_id: string

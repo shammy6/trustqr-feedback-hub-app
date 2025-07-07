@@ -15,20 +15,29 @@ const FeedbackAnalysis = () => {
     isLoading 
   } = useRealtimeAnalytics();
 
-  // Calculate sentiment percentages from real data
+  // Debug logs to understand the data structure
+  console.log('FeedbackAnalysis - Analytics Data:', {
+    totalReviews,
+    averageRating,
+    positivePercentage,
+    recentActivity: recentActivity?.length || 0,
+    isLoading
+  });
+
+  // Calculate sentiment percentages from real data with safe defaults
   const sentimentData = {
-    positive: positivePercentage,
-    neutral: Math.max(0, 100 - positivePercentage - Math.round((100 - positivePercentage) * 0.3)),
-    negative: Math.round((100 - positivePercentage) * 0.3)
+    positive: positivePercentage || 0,
+    neutral: Math.max(0, 100 - (positivePercentage || 0) - Math.round((100 - (positivePercentage || 0)) * 0.3)),
+    negative: Math.round((100 - (positivePercentage || 0)) * 0.3)
   };
 
-  // Convert recent activity to feedback format for AI analysis
-  const recentFeedback = recentActivity
-    .filter(activity => activity.type === 'review')
+  // Convert recent activity to feedback format for AI analysis with safe defaults
+  const recentFeedback = (recentActivity || [])
+    .filter(activity => activity?.type === 'review')
     .slice(0, 3)
     .map((activity, index) => ({
       id: index + 1,
-      customerName: activity.description.replace('New review from ', ''),
+      customerName: activity.description?.replace('New review from ', '') || 'Anonymous',
       rating: 4 + Math.floor(Math.random() * 2), // Mock rating 4-5 for positive reviews
       feedback: index === 0 ? "Amazing service! Will definitely come back." : 
                 index === 1 ? "Good experience overall, friendly staff." : 
@@ -112,6 +121,55 @@ const FeedbackAnalysis = () => {
     }
   };
 
+  // Show loading state if data is still loading
+  if (isLoading) {
+    return (
+      <div className="space-y-6">
+        <div className="mb-8">
+          <h2 className="text-2xl font-bold text-foreground mb-2 flex items-center gap-2">
+            <Brain className="w-6 h-6 text-accent" />
+            AI Feedback Analysis
+          </h2>
+          <p className="text-muted-foreground">
+            Loading intelligent insights from your customer feedback...
+          </p>
+        </div>
+        
+        {/* Loading Skeletons */}
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          {[1, 2, 3].map((i) => (
+            <Card key={i} className="trustqr-card">
+              <CardContent className="p-6">
+                <div className="space-y-2">
+                  <Skeleton className="h-4 w-20" />
+                  <Skeleton className="h-8 w-16" />
+                </div>
+              </CardContent>
+            </Card>
+          ))}
+        </div>
+        
+        <Card className="trustqr-card">
+          <CardHeader>
+            <Skeleton className="h-6 w-64" />
+            <Skeleton className="h-4 w-96" />
+          </CardHeader>
+          <CardContent>
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              {[1, 2, 3].map((i) => (
+                <div key={i} className="text-center p-4 bg-accent/10 rounded-lg border border-border">
+                  <Skeleton className="h-8 w-8 mx-auto mb-2 rounded-full" />
+                  <Skeleton className="h-8 w-16 mx-auto mb-2" />
+                  <Skeleton className="h-4 w-24 mx-auto" />
+                </div>
+              ))}
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
+
   return (
     <div className="space-y-6">
       <div className="mb-8">
@@ -137,7 +195,7 @@ const FeedbackAnalysis = () => {
               <div className="flex items-center justify-between">
                 <div>
                   <p className="text-sm font-medium text-muted-foreground">Total Responses</p>
-                  <p className="text-2xl font-bold text-foreground">{totalReviews}</p>
+                  <p className="text-2xl font-bold text-foreground">{totalReviews || 0}</p>
                 </div>
                 <div className="text-2xl">📊</div>
               </div>
@@ -156,7 +214,7 @@ const FeedbackAnalysis = () => {
               <div className="flex items-center justify-between">
                 <div>
                   <p className="text-sm font-medium text-muted-foreground">Average Rating</p>
-                  <p className="text-2xl font-bold text-foreground">{averageRating}/5</p>
+                  <p className="text-2xl font-bold text-foreground">{averageRating || 0}/5</p>
                 </div>
                 <div className="text-2xl">⭐</div>
               </div>
@@ -297,7 +355,7 @@ const FeedbackAnalysis = () => {
           <CardDescription>Latest customer responses analyzed by AI</CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
-          {analyzedFeedback.map((feedback) => (
+          {analyzedFeedback.length > 0 ? analyzedFeedback.map((feedback) => (
             <div key={feedback.id} className="p-4 border border-border rounded-lg bg-card/50">
               <div className="flex flex-col gap-3">
                 <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-2">
@@ -330,7 +388,15 @@ const FeedbackAnalysis = () => {
                 </div>
               </div>
             </div>
-          ))}
+          )) : (
+            <div className="text-center py-8">
+              <div className="text-4xl mb-4">📊</div>
+              <p className="text-muted-foreground">No recent feedback to analyze yet</p>
+              <p className="text-sm text-muted-foreground mt-2">
+                Feedback will appear here as customers submit reviews
+              </p>
+            </div>
+          )}
         </CardContent>
       </Card>
 

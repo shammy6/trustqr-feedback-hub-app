@@ -31,6 +31,9 @@ export const useRealtimeAnalytics = (): AnalyticsData => {
     isLoading: true,
   });
 
+  console.log('useRealtimeAnalytics - User Profile:', userProfile);
+  console.log('useRealtimeAnalytics - Current Data:', data);
+
   // Helper function to format relative time
   const getRelativeTime = (timestamp: string) => {
     const now = new Date();
@@ -45,7 +48,13 @@ export const useRealtimeAnalytics = (): AnalyticsData => {
 
   // Load initial data
   const loadInitialData = async () => {
-    if (!userProfile?.business_uuid) return;
+    if (!userProfile?.business_uuid) {
+      console.log('useRealtimeAnalytics - No business_uuid, setting loading to false');
+      setData(prev => ({ ...prev, isLoading: false }));
+      return;
+    }
+
+    console.log('useRealtimeAnalytics - Loading initial data for business:', userProfile.business_uuid);
 
     try {
       const [reviewsResult, pageViewsResult, qrScansResult] = await Promise.all([
@@ -66,6 +75,12 @@ export const useRealtimeAnalytics = (): AnalyticsData => {
       const reviews = reviewsResult.data || [];
       const pageViews = pageViewsResult.data || [];
       const qrScans = qrScansResult.data || [];
+
+      console.log('useRealtimeAnalytics - Raw data:', {
+        reviews: reviews.length,
+        pageViews: pageViews.length,
+        qrScans: qrScans.length
+      });
 
       // Calculate analytics
       const totalReviews = reviews.length;
@@ -109,6 +124,15 @@ export const useRealtimeAnalytics = (): AnalyticsData => {
         recentActivity: allActivity,
         isLoading: false,
       });
+
+      console.log('useRealtimeAnalytics - Processed data:', {
+        totalReviews,
+        totalPageViews: pageViews.length,
+        totalQrScans: qrScans.length,
+        averageRating: Math.round(averageRating * 10) / 10,
+        positivePercentage,
+        activityCount: allActivity.length
+      });
     } catch (error) {
       console.error('Error loading analytics data:', error);
       setData(prev => ({ ...prev, isLoading: false }));
@@ -116,7 +140,10 @@ export const useRealtimeAnalytics = (): AnalyticsData => {
   };
 
   useEffect(() => {
+    console.log('useRealtimeAnalytics - Effect running, userProfile:', userProfile);
+    
     if (!userProfile?.business_uuid) {
+      console.log('useRealtimeAnalytics - No business_uuid available');
       setData(prev => ({ ...prev, isLoading: false }));
       return;
     }
@@ -124,6 +151,7 @@ export const useRealtimeAnalytics = (): AnalyticsData => {
     loadInitialData();
 
     // Set up real-time subscriptions
+    console.log('useRealtimeAnalytics - Setting up real-time subscriptions');
     const channel = supabase
       .channel('analytics-updates')
       .on(
@@ -135,6 +163,7 @@ export const useRealtimeAnalytics = (): AnalyticsData => {
           filter: `business_id=eq.${userProfile.id}`,
         },
         (payload) => {
+          console.log('useRealtimeAnalytics - New review received:', payload);
           const newReview = payload.new as any;
           setData(prev => {
             const newTotalReviews = prev.totalReviews + 1;
@@ -171,6 +200,7 @@ export const useRealtimeAnalytics = (): AnalyticsData => {
           filter: `business_uuid=eq.${userProfile.business_uuid}`,
         },
         (payload) => {
+          console.log('useRealtimeAnalytics - New page view received:', payload);
           const newPageView = payload.new as any;
           setData(prev => {
             const newActivity: ActivityItem = {
@@ -197,6 +227,7 @@ export const useRealtimeAnalytics = (): AnalyticsData => {
           filter: `business_uuid=eq.${userProfile.business_uuid}`,
         },
         (payload) => {
+          console.log('useRealtimeAnalytics - New QR scan received:', payload);
           const newQrScan = payload.new as any;
           setData(prev => {
             const newActivity: ActivityItem = {
@@ -216,7 +247,10 @@ export const useRealtimeAnalytics = (): AnalyticsData => {
       )
       .subscribe();
 
+    console.log('useRealtimeAnalytics - Subscriptions set up successfully');
+
     return () => {
+      console.log('useRealtimeAnalytics - Cleaning up subscriptions');
       supabase.removeChannel(channel);
     };
   }, [userProfile?.business_uuid, userProfile?.id]);

@@ -31,6 +31,18 @@ const FeedbackAnalysis = () => {
     negative: Math.round((100 - (positivePercentage || 0)) * 0.3)
   };
 
+  // Helper function to get relative time
+  const getRelativeTime = (timestamp: string) => {
+    const now = new Date();
+    const past = new Date(timestamp);
+    const diffInSeconds = Math.floor((now.getTime() - past.getTime()) / 1000);
+    
+    if (diffInSeconds < 60) return `${diffInSeconds} sec ago`;
+    if (diffInSeconds < 3600) return `${Math.floor(diffInSeconds / 60)} min ago`;
+    if (diffInSeconds < 86400) return `${Math.floor(diffInSeconds / 3600)} hr ago`;
+    return `${Math.floor(diffInSeconds / 86400)} days ago`;
+  };
+
   // Convert recent activity to feedback format for AI analysis with safe defaults
   const recentFeedback = (recentActivity || [])
     .filter(activity => activity?.type === 'review')
@@ -45,18 +57,6 @@ const FeedbackAnalysis = () => {
       sentiment: "positive",
       timestamp: getRelativeTime(activity.timestamp)
     }));
-
-  // Helper function to get relative time
-  const getRelativeTime = (timestamp: string) => {
-    const now = new Date();
-    const past = new Date(timestamp);
-    const diffInSeconds = Math.floor((now.getTime() - past.getTime()) / 1000);
-    
-    if (diffInSeconds < 60) return `${diffInSeconds} sec ago`;
-    if (diffInSeconds < 3600) return `${Math.floor(diffInSeconds / 60)} min ago`;
-    if (diffInSeconds < 86400) return `${Math.floor(diffInSeconds / 3600)} hr ago`;
-    return `${Math.floor(diffInSeconds / 86400)} days ago`;
-  };
 
   // Analyze recent feedback with AI
   const analyzedFeedback = recentFeedback.map(feedback => ({

@@ -38,6 +38,33 @@ export type Database = {
         }
         Relationships: []
       }
+      follow_up_logs: {
+        Row: {
+          business_uuid: string
+          created_at: string | null
+          id: string
+          method: string | null
+          review_id: string | null
+          sent_at: string | null
+        }
+        Insert: {
+          business_uuid: string
+          created_at?: string | null
+          id?: string
+          method?: string | null
+          review_id?: string | null
+          sent_at?: string | null
+        }
+        Update: {
+          business_uuid?: string
+          created_at?: string | null
+          id?: string
+          method?: string | null
+          review_id?: string | null
+          sent_at?: string | null
+        }
+        Relationships: []
+      }
       page_views: {
         Row: {
           business_uuid: string

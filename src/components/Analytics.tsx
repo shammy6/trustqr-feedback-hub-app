@@ -5,13 +5,18 @@ import { Button } from '@/components/ui/button';
 import { Progress } from '@/components/ui/progress';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, LineChart, Line } from 'recharts';
 import { TrendingUp, TrendingDown, Users, Star, Calendar, Filter, Eye, QrCode } from 'lucide-react';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useRealtimeAnalytics } from '@/hooks/useRealtimeAnalytics';
 import { Skeleton } from '@/components/ui/skeleton';
+import FollowUpManager from '@/components/FollowUpManager';
+import { supabase } from '@/integrations/supabase/client';
+import { useAuth } from '@/components/auth/AuthProvider';
 
 const Analytics = () => {
   const [timeRange, setTimeRange] = useState('30');
   const [feedbackType, setFeedbackType] = useState('all');
+  const [reviews, setReviews] = useState([]);
+  const { userProfile } = useAuth();
   const { 
     totalReviews, 
     totalPageViews, 
@@ -21,6 +26,26 @@ const Analytics = () => {
     recentActivity, 
     isLoading 
   } = useRealtimeAnalytics();
+
+  // Fetch recent reviews for follow-up system
+  useEffect(() => {
+    const fetchRecentReviews = async () => {
+      if (!userProfile?.id) return;
+
+      const { data, error } = await supabase
+        .from('reviews')
+        .select('*')
+        .eq('business_id', userProfile.id)
+        .order('created_at', { ascending: false })
+        .limit(10);
+
+      if (!error && data) {
+        setReviews(data);
+      }
+    };
+
+    fetchRecentReviews();
+  }, [userProfile]);
 
   const negativePercentage = 100 - positivePercentage;
 
@@ -204,6 +229,9 @@ const Analytics = () => {
           </CardContent>
         </Card>
       </div>
+
+      {/* Follow-up System */}
+      <FollowUpManager reviews={reviews} />
 
       {/* Recent Activity */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">

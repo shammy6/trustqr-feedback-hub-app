@@ -5,8 +5,11 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { Brain, TrendingUp, TrendingDown, Lightbulb, Target, Zap } from "lucide-react";
 import { analyzeSentiment } from "@/utils/sentimentAnalyzer";
 import { useRealtimeAnalytics } from "@/hooks/useRealtimeAnalytics";
+import { useAuth } from "@/components/auth/AuthProvider";
+import SubscriptionLock from "@/components/SubscriptionLock";
 
 const FeedbackAnalysis = () => {
+  const { userProfile } = useAuth();
   const { 
     totalReviews, 
     averageRating, 
@@ -14,6 +17,45 @@ const FeedbackAnalysis = () => {
     recentActivity, 
     isLoading 
   } = useRealtimeAnalytics();
+
+  // Check subscription access
+  const hasAccess = () => {
+    if (!userProfile) return false;
+    
+    const { plan_tier, plan_expiry } = userProfile;
+    
+    // Allow access for premium or vip plans
+    if (plan_tier === 'premium' || plan_tier === 'vip') {
+      // Check if plan hasn't expired
+      if (plan_expiry) {
+        const expiryDate = new Date(plan_expiry);
+        const now = new Date();
+        return expiryDate > now;
+      }
+      return true; // No expiry date means lifetime access
+    }
+    
+    return false;
+  };
+
+  // Show subscription lock if no access
+  if (!hasAccess()) {
+    return (
+      <SubscriptionLock
+        title="AI Feedback Analysis"
+        description="Advanced AI-powered insights to understand your customer feedback better"
+        features={[
+          "Real-time AI sentiment analysis of customer feedback",
+          "Smart performance insights and recommendations", 
+          "Automated categorization of positive, neutral, and negative feedback",
+          "AI-powered suggestions to improve customer satisfaction",
+          "Advanced analytics dashboard with trend analysis",
+          "Priority customer support and feature updates"
+        ]}
+        currentPlan={userProfile?.plan_tier || "free"}
+      />
+    );
+  }
 
   // Debug logs to understand the data structure
   console.log('FeedbackAnalysis - Analytics Data:', {

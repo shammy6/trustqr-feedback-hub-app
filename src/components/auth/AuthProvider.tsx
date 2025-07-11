@@ -12,6 +12,8 @@ interface UserProfile {
   review_page_link?: string;
   alert_email?: string;
   business_logo?: string;
+  plan_tier?: string;
+  plan_expiry?: string;
 }
 
 interface AuthContextType {
@@ -71,7 +73,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       // Now select all columns including the new ones
       const { data, error } = await supabase
         .from('users')
-        .select('id, name, business_name, email, business_uuid, review_page_link, alert_email, business_logo')
+        .select('id, name, business_name, email, business_uuid, review_page_link, alert_email, business_logo, plan_tier, plan_expiry')
         .eq('id', userId)
         .single();
 
@@ -88,6 +90,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           review_page_link: data.review_page_link,
           alert_email: data.alert_email,
           business_logo: data.business_logo,
+          plan_tier: data.plan_tier,
+          plan_expiry: data.plan_expiry,
         });
       }
     } catch (error) {
@@ -149,6 +153,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       if (updates.review_page_link !== undefined) dbUpdates.review_page_link = updates.review_page_link;
       if (updates.alert_email !== undefined) dbUpdates.alert_email = updates.alert_email;
       if (updates.business_logo !== undefined) dbUpdates.business_logo = updates.business_logo;
+      if (updates.plan_tier !== undefined) dbUpdates.plan_tier = updates.plan_tier;
+      if (updates.plan_expiry !== undefined) dbUpdates.plan_expiry = updates.plan_expiry;
 
       const { error } = await supabase
         .from('users')

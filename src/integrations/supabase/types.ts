@@ -134,6 +134,8 @@ export type Database = {
           email: string
           id: string
           name: string
+          plan_expiry: string | null
+          plan_tier: string | null
           review_page_link: string | null
         }
         Insert: {
@@ -145,6 +147,8 @@ export type Database = {
           email: string
           id: string
           name: string
+          plan_expiry?: string | null
+          plan_tier?: string | null
           review_page_link?: string | null
         }
         Update: {
@@ -156,6 +160,8 @@ export type Database = {
           email?: string
           id?: string
           name?: string
+          plan_expiry?: string | null
+          plan_tier?: string | null
           review_page_link?: string | null
         }
         Relationships: []

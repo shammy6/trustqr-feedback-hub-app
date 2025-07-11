@@ -2,6 +2,7 @@
 import { QrCode, Bell, Settings, BarChart3, LogOut, User, ChevronDown } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { Progress } from "@/components/ui/progress";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -27,6 +28,43 @@ const Header = ({ activeTab, onTabChange }: HeaderProps) => {
   const handleNavClick = (tab: string) => {
     onTabChange(tab);
   };
+
+  const getPlanBadgeVariant = (tier: string) => {
+    switch (tier?.toLowerCase()) {
+      case 'premium': return 'purple';
+      case 'vip': return 'gold';
+      case 'free':
+      default: return 'gray';
+    }
+  };
+
+  const getPlanUsagePercentage = (start: Date, expiry: Date) => {
+    const now = new Date();
+    const total = expiry.getTime() - start.getTime();
+    const used = now.getTime() - start.getTime();
+    return Math.min(100, Math.max(0, (used / total) * 100));
+  };
+
+  const getDaysLeft = (expiry: Date) => {
+    const now = new Date();
+    const diffTime = expiry.getTime() - now.getTime();
+    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+    return diffDays;
+  };
+
+  const formatExpiryDate = (dateStr: string) => {
+    return new Date(dateStr).toLocaleDateString('en-US', {
+      year: 'numeric',
+      month: 'long',
+      day: 'numeric'
+    });
+  };
+
+  const planTier = userProfile?.plan_tier || 'free';
+  const planExpiry = userProfile?.plan_expiry;
+  const isPaidPlan = planTier !== 'free' && planExpiry;
+  const expiryDate = isPaidPlan ? new Date(planExpiry) : null;
+  const isExpired = expiryDate ? new Date() > expiryDate : false;
 
   return (
     <header className="bg-card border-b border-border sticky top-0 z-50">
@@ -109,11 +147,37 @@ const Header = ({ activeTab, onTabChange }: HeaderProps) => {
                   <ChevronDown className="w-4 h-4 text-muted-foreground" />
                 </Button>
               </DropdownMenuTrigger>
-              <DropdownMenuContent align="end" className="w-64 bg-popover">
+              <DropdownMenuContent align="end" className="w-80 bg-popover">
                 <DropdownMenuLabel>My Account</DropdownMenuLabel>
                 <div className="px-2 py-1.5 text-sm">
-                  <p className="font-medium">{userProfile?.name}</p>
-                  <p className="text-muted-foreground text-xs">{userProfile?.email}</p>
+                  <div className="flex items-center justify-between mb-2">
+                    <div>
+                      <p className="font-medium">{userProfile?.name}</p>
+                      <p className="text-muted-foreground text-xs">{userProfile?.email}</p>
+                    </div>
+                    <Badge variant={getPlanBadgeVariant(planTier) as any} className="ml-2">
+                      {planTier.toUpperCase()}
+                    </Badge>
+                  </div>
+                  
+                  {isPaidPlan && !isExpired && (
+                    <div className="mt-3 pt-3 border-t border-border">
+                      <div className="flex items-center justify-between text-xs text-muted-foreground mb-2">
+                        <span>Expires on: {formatExpiryDate(planExpiry)}</span>
+                        <span>{getDaysLeft(expiryDate!)} days left</span>
+                      </div>
+                      <Progress 
+                        value={getPlanUsagePercentage(new Date(Date.now() - 30 * 24 * 60 * 60 * 1000), expiryDate!)} 
+                        className="h-2 bg-muted"
+                      />
+                    </div>
+                  )}
+
+                  {isPaidPlan && isExpired && (
+                    <div className="mt-3 pt-3 border-t border-border">
+                      <p className="text-xs text-destructive">Plan expired on {formatExpiryDate(planExpiry)}</p>
+                    </div>
+                  )}
                 </div>
                 <DropdownMenuSeparator />
                 <DropdownMenuItem onClick={() => onTabChange('settings')}>

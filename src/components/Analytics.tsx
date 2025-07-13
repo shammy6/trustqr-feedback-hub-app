@@ -3,12 +3,14 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Button } from '@/components/ui/button';
 import { Progress } from '@/components/ui/progress';
-import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, LineChart, Line } from 'recharts';
-import { TrendingUp, TrendingDown, Users, Star, Calendar, Filter, Eye, QrCode } from 'lucide-react';
+import { Badge } from '@/components/ui/badge';
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
+import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip as ChartTooltip, ResponsiveContainer, LineChart, Line } from 'recharts';
+import { TrendingUp, TrendingDown, Users, Star, Calendar, Filter, Eye, QrCode, Send, Mail, CheckCircle } from 'lucide-react';
 import { useState, useEffect } from 'react';
 import { useRealtimeAnalytics } from '@/hooks/useRealtimeAnalytics';
 import { Skeleton } from '@/components/ui/skeleton';
-import FollowUpManager from '@/components/FollowUpManager';
+import { useFollowUpSystem } from '@/hooks/useFollowUpSystem';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/components/auth/AuthProvider';
 
@@ -16,7 +18,9 @@ const Analytics = () => {
   const [timeRange, setTimeRange] = useState('30');
   const [feedbackType, setFeedbackType] = useState('all');
   const [reviews, setReviews] = useState([]);
+  const [followUpSentStatus, setFollowUpSentStatus] = useState<Record<string, boolean>>({});
   const { userProfile } = useAuth();
+  const { stats, sendFollowUp, checkFollowUpSent } = useFollowUpSystem();
   const { 
     totalReviews, 
     totalPageViews, 
@@ -27,7 +31,7 @@ const Analytics = () => {
     isLoading 
   } = useRealtimeAnalytics();
 
-  // Fetch recent reviews for follow-up system
+  // Fetch recent reviews and check follow-up status
   useEffect(() => {
     const fetchRecentReviews = async () => {
       if (!userProfile?.id) return;
@@ -37,17 +41,50 @@ const Analytics = () => {
         .select('*')
         .eq('business_id', userProfile.id)
         .order('created_at', { ascending: false })
-        .limit(10);
+        .limit(20);
 
       if (!error && data) {
         setReviews(data);
+        
+        // Check follow-up status for each review
+        const statusMap: Record<string, boolean> = {};
+        for (const review of data) {
+          statusMap[review.id] = await checkFollowUpSent(review.id);
+        }
+        setFollowUpSentStatus(statusMap);
       }
     };
 
     fetchRecentReviews();
-  }, [userProfile]);
+  }, [userProfile, checkFollowUpSent]);
 
   const negativePercentage = 100 - positivePercentage;
+
+  const handleSendFollowUp = async (review: any) => {
+    if (!review.customer_email) return;
+    
+    const success = await sendFollowUp(review.id, review.customer_email, review.customer_name);
+    if (success) {
+      // Update local status
+      setFollowUpSentStatus(prev => ({
+        ...prev,
+        [review.id]: true
+      }));
+    }
+  };
+
+  const getFollowUpButtonState = (review: any) => {
+    const alreadySent = followUpSentStatus[review.id];
+    const hasEmail = !!review.customer_email;
+    const canSend = stats.hasAccess && stats.canSend && hasEmail && !alreadySent;
+    
+    if (!hasEmail) return { disabled: true, text: 'No Email', variant: 'outline' as const };
+    if (alreadySent) return { disabled: true, text: 'Sent', variant: 'outline' as const, icon: CheckCircle };
+    if (!stats.hasAccess) return { disabled: true, text: 'Upgrade Required', variant: 'outline' as const };
+    if (!stats.canSend) return { disabled: true, text: 'Limit Reached', variant: 'outline' as const };
+    
+    return { disabled: false, text: 'Send Follow-up', variant: 'default' as const, icon: Send };
+  };
 
   // Helper function to get relative time
   const getRelativeTime = (timestamp: string) => {
@@ -230,8 +267,143 @@ const Analytics = () => {
         </Card>
       </div>
 
-      {/* Follow-up System */}
-      <FollowUpManager reviews={reviews} />
+      {/* Follow-up System Stats */}
+      <Card className="trustqr-card">
+        <CardHeader>
+          <div className="flex items-center justify-between">
+            <div>
+              <CardTitle className="flex items-center gap-2">
+                <Mail className="w-5 h-5" />
+                Smart Follow-Up System
+              </CardTitle>
+              <CardDescription>
+                Send personalized follow-up messages to customers
+              </CardDescription>
+            </div>
+            <div className="flex items-center gap-2">
+              <Badge variant={userProfile?.plan_tier === 'vip' ? 'gold' : userProfile?.plan_tier === 'premium' ? 'purple' : 'gray'}>
+                {(userProfile?.plan_tier || 'free').toUpperCase()}
+              </Badge>
+            </div>
+          </div>
+        </CardHeader>
+        <CardContent>
+          {!stats.hasAccess ? (
+            <div className="text-center py-8">
+              <Mail className="w-12 h-12 text-muted-foreground mx-auto mb-4" />
+              <h3 className="text-lg font-semibold mb-2">Upgrade Required</h3>
+              <p className="text-muted-foreground mb-4">
+                Smart follow-up messages are available for Premium and VIP users.
+              </p>
+              <Button className="trustqr-gradient text-white">
+                Upgrade Now
+              </Button>
+            </div>
+          ) : (
+            <div className="space-y-4">
+              <div className="flex items-center justify-between">
+                <span className="text-sm font-medium">This Month Usage</span>
+                <div className="text-right">
+                  {stats.isUnlimited ? (
+                    <Badge variant="gold" className="text-xs">Unlimited</Badge>
+                  ) : (
+                    <span className="text-sm font-semibold">
+                      {stats.used}/{stats.limit} used
+                    </span>
+                  )}
+                </div>
+              </div>
+              
+              {!stats.isUnlimited && (
+                <div className="space-y-2">
+                  <Progress value={(stats.used / stats.limit) * 100} className="h-2" />
+                  <div className="flex justify-between text-xs text-muted-foreground">
+                    <span>{stats.used} sent</span>
+                    <span>{stats.limit - stats.used} remaining</span>
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
+        </CardContent>
+      </Card>
+
+      {/* Recent Reviews with Follow-up Actions */}
+      <Card className="trustqr-card">
+        <CardHeader>
+          <CardTitle>Recent Reviews</CardTitle>
+          <CardDescription>
+            Customer reviews with smart follow-up actions
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          {reviews.length === 0 ? (
+            <p className="text-muted-foreground text-center py-8">No reviews yet</p>
+          ) : (
+            <TooltipProvider>
+              <div className="space-y-4">
+                {reviews.slice(0, 10).map((review: any) => {
+                  const buttonState = getFollowUpButtonState(review);
+                  return (
+                    <div key={review.id} className="flex items-center justify-between p-4 border border-border rounded-lg bg-card">
+                      <div className="flex-1">
+                        <div className="flex items-center gap-2 mb-2">
+                          <span className="font-medium">{review.customer_name}</span>
+                          <div className="flex">
+                            {Array.from({ length: 5 }, (_, i) => (
+                              <Star 
+                                key={i} 
+                                className={`w-4 h-4 ${i < review.rating ? 'text-yellow-500 fill-current' : 'text-muted-foreground'}`} 
+                              />
+                            ))}
+                          </div>
+                          {review.customer_email && (
+                            <Badge variant="outline" className="text-xs">
+                              {review.customer_email}
+                            </Badge>
+                          )}
+                        </div>
+                        <p className="text-sm text-muted-foreground truncate mb-1">
+                          {review.review_text}
+                        </p>
+                        <p className="text-xs text-muted-foreground">
+                          {new Date(review.created_at).toLocaleDateString()}
+                        </p>
+                      </div>
+                      
+                      <div className="ml-4">
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <Button
+                              size="sm"
+                              variant={buttonState.variant}
+                              disabled={buttonState.disabled}
+                              onClick={() => handleSendFollowUp(review)}
+                              className={`${
+                                followUpSentStatus[review.id] ? 'bg-green-100 text-green-700 border-green-200' : ''
+                              }`}
+                            >
+                              {buttonState.icon && <buttonState.icon className="w-4 h-4 mr-1" />}
+                              {buttonState.text}
+                            </Button>
+                          </TooltipTrigger>
+                          <TooltipContent>
+                            {!review.customer_email ? 'No email address provided' :
+                             followUpSentStatus[review.id] ? 'Follow-up already sent for this review' :
+                             !stats.hasAccess ? 'Upgrade to Premium or VIP to send follow-ups' :
+                             !stats.canSend ? 'Monthly limit reached' :
+                             'Send personalized follow-up email'}
+                          </TooltipContent>
+                        </Tooltip>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            </TooltipProvider>
+          )}
+        </CardContent>
+      </Card>
 
       {/* Recent Activity */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
@@ -304,7 +476,7 @@ const Analytics = () => {
                     tick={{ fontSize: 12 }}
                   />
                   <YAxis stroke="hsl(var(--muted-foreground))" tick={{ fontSize: 12 }} />
-                  <Tooltip 
+                  <ChartTooltip 
                     contentStyle={{ 
                       backgroundColor: 'hsl(var(--popover))', 
                       border: '1px solid hsl(var(--border))',
@@ -335,7 +507,7 @@ const Analytics = () => {
                     tick={{ fontSize: 12 }}
                   />
                   <YAxis stroke="hsl(var(--muted-foreground))" tick={{ fontSize: 12 }} />
-                  <Tooltip 
+                  <ChartTooltip 
                     contentStyle={{ 
                       backgroundColor: 'hsl(var(--popover))', 
                       border: '1px solid hsl(var(--border))',

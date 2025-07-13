@@ -5,7 +5,7 @@ import { useToast } from '@/hooks/use-toast';
 
 interface FollowUpLimits {
   free: { limit: 0, hasAccess: false };
-  premium: { limit: 20, hasAccess: true };
+  premium: { limit: 30, hasAccess: true };
   vip: { limit: -1, hasAccess: true }; // -1 means unlimited
 }
 
@@ -31,7 +31,7 @@ export const useFollowUpSystem = () => {
 
   const limits: FollowUpLimits = {
     free: { limit: 0, hasAccess: false },
-    premium: { limit: 20, hasAccess: true },
+    premium: { limit: 30, hasAccess: true },
     vip: { limit: -1, hasAccess: true },
   };
 
@@ -77,6 +77,24 @@ export const useFollowUpSystem = () => {
     setIsLoading(false);
   };
 
+  const checkFollowUpSent = async (reviewId: string) => {
+    if (!userProfile?.business_uuid) return false;
+
+    const { data, error } = await supabase
+      .from('follow_up_logs')
+      .select('id')
+      .eq('business_uuid', userProfile.business_uuid)
+      .eq('review_id', reviewId)
+      .limit(1);
+
+    if (error) {
+      console.error('Error checking follow-up status:', error);
+      return false;
+    }
+
+    return (data?.length || 0) > 0;
+  };
+
   const sendFollowUp = async (reviewId: string, customerEmail: string, customerName: string) => {
     if (!userProfile?.business_uuid) {
       toast({
@@ -87,17 +105,28 @@ export const useFollowUpSystem = () => {
       return false;
     }
 
+    // Check if follow-up already sent
+    const alreadySent = await checkFollowUpSent(reviewId);
+    if (alreadySent) {
+      toast({
+        title: "Already Sent",
+        description: "Follow-up already sent for this review",
+        variant: "destructive",
+      });
+      return false;
+    }
+
     if (!stats.canSend) {
       if (!stats.hasAccess) {
         toast({
           title: "Upgrade Required",
-          description: "Follow-up messages are only available for Premium and VIP users.",
+          description: "Upgrade to Premium or VIP to enable smart follow-ups",
           variant: "destructive",
         });
       } else {
         toast({
           title: "Monthly Limit Reached",
-          description: "You've reached your monthly limit. Upgrade to VIP for unlimited follow-ups.",
+          description: "Monthly limit reached. Upgrade to VIP for unlimited follow-ups",
           variant: "destructive",
         });
       }
@@ -120,8 +149,8 @@ export const useFollowUpSystem = () => {
       console.log(`Sending follow-up email to ${customerEmail} for review ${reviewId}`);
       
       toast({
-        title: "Follow-up Sent",
-        description: `Follow-up email sent to ${customerName}`,
+        title: "✅ Success",
+        description: `Follow-up sent to ${customerEmail}`,
       });
 
       // Update stats
@@ -147,6 +176,7 @@ export const useFollowUpSystem = () => {
     stats,
     isLoading,
     sendFollowUp,
+    checkFollowUpSent,
     refreshStats: updateStats,
   };
 };

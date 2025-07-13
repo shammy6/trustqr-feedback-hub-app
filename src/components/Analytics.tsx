@@ -98,40 +98,85 @@ const Analytics = () => {
     return `${Math.floor(diffInSeconds / 86400)} days ago`;
   };
 
-  // Mock chart data for visualization (can be enhanced later with real historical data)
-  const dailyData = [
-    { date: '2024-01-01', feedback: 12, positive: 8, negative: 4 },
-    { date: '2024-01-02', feedback: 15, positive: 11, negative: 4 },
-    { date: '2024-01-03', feedback: 8, positive: 6, negative: 2 },
-    { date: '2024-01-04', feedback: 20, positive: 16, negative: 4 },
-    { date: '2024-01-05', feedback: 18, positive: 14, negative: 4 },
-    { date: '2024-01-06', feedback: 25, positive: 19, negative: 6 },
-    { date: '2024-01-07', feedback: 22, positive: 17, negative: 5 }
-  ];
+  // Generate real-time chart data based on actual review data
+  const generateDailyData = () => {
+    const data = [];
+    const today = new Date();
+    
+    for (let i = 6; i >= 0; i--) {
+      const date = new Date(today);
+      date.setDate(date.getDate() - i);
+      const dateStr = date.toISOString().split('T')[0];
+      
+      // Filter reviews for this specific date
+      const dayReviews = reviews.filter((review: any) => {
+        const reviewDate = new Date(review.created_at).toISOString().split('T')[0];
+        return reviewDate === dateStr;
+      });
+      
+      const feedback = dayReviews.length;
+      const positive = dayReviews.filter((r: any) => r.rating >= 4).length;
+      const negative = dayReviews.filter((r: any) => r.rating <= 2).length;
+      
+      data.push({
+        date: date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' }),
+        feedback,
+        positive,
+        negative
+      });
+    }
+    return data;
+  };
 
-  const weeklyData = [
-    { week: 'Week 1', feedback: 87, positive: 68, negative: 19 },
-    { week: 'Week 2', feedback: 94, positive: 73, negative: 21 },
-    { week: 'Week 3', feedback: 102, positive: 81, negative: 21 },
-    { week: 'Week 4', feedback: 118, positive: 94, negative: 24 }
-  ];
+  const generateWeeklyData = () => {
+    const data = [];
+    const today = new Date();
+    
+    for (let i = 3; i >= 0; i--) {
+      const weekStart = new Date(today);
+      weekStart.setDate(weekStart.getDate() - (i * 7 + 7));
+      const weekEnd = new Date(weekStart);
+      weekEnd.setDate(weekEnd.getDate() + 6);
+      
+      // Filter reviews for this week
+      const weekReviews = reviews.filter((review: any) => {
+        const reviewDate = new Date(review.created_at);
+        return reviewDate >= weekStart && reviewDate <= weekEnd;
+      });
+      
+      const feedback = weekReviews.length;
+      const positive = weekReviews.filter((r: any) => r.rating >= 4).length;
+      const negative = weekReviews.filter((r: any) => r.rating <= 2).length;
+      
+      data.push({
+        week: `Week ${4 - i}`,
+        feedback,
+        positive,
+        negative
+      });
+    }
+    return data;
+  };
+
+  const dailyData = generateDailyData();
+  const weeklyData = generateWeeklyData();
 
   return (
-    <div className="space-y-6">
-      <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4 mb-8">
-        <div>
-          <h2 className="text-2xl font-bold text-foreground mb-2">Analytics Dashboard</h2>
+    <div className="space-y-8">
+      <div className="flex flex-col space-y-4 lg:flex-row lg:items-center lg:justify-between lg:space-y-0">
+        <div className="space-y-1">
+          <h2 className="text-3xl font-bold text-foreground">Analytics Dashboard</h2>
           <p className="text-muted-foreground">
             Track your feedback performance and customer satisfaction
           </p>
         </div>
         
-        <div className="flex flex-row gap-3 w-full sm:w-auto">
+        <div className="flex flex-col gap-3 sm:flex-row sm:gap-3">
           <Select value={timeRange} onValueChange={setTimeRange}>
-            <SelectTrigger className="flex-1 sm:w-[150px] bg-input border-border">
+            <SelectTrigger className="w-full sm:w-[160px] bg-popover border-border">
               <SelectValue placeholder="Time range" />
             </SelectTrigger>
-            <SelectContent className="bg-popover">
+            <SelectContent className="bg-popover border-border z-50">
               <SelectItem value="7">Last 7 days</SelectItem>
               <SelectItem value="30">Last 30 days</SelectItem>
               <SelectItem value="90">Last 90 days</SelectItem>
@@ -139,10 +184,10 @@ const Analytics = () => {
           </Select>
           
           <Select value={feedbackType} onValueChange={setFeedbackType}>
-            <SelectTrigger className="flex-1 sm:w-[150px] bg-input border-border">
+            <SelectTrigger className="w-full sm:w-[160px] bg-popover border-border">
               <SelectValue placeholder="All Types" />
             </SelectTrigger>
-            <SelectContent className="bg-popover">
+            <SelectContent className="bg-popover border-border z-50">
               <SelectItem value="all">All Types</SelectItem>
               <SelectItem value="general">General</SelectItem>
               <SelectItem value="post-visit">Post-visit</SelectItem>
@@ -153,9 +198,9 @@ const Analytics = () => {
       </div>
 
       {/* Key Metrics */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4 lg:gap-6">
         <Card className="trustqr-card">
-          <CardContent className="p-6">
+          <CardContent className="p-4 sm:p-6">
             {isLoading ? (
               <div className="space-y-2">
                 <Skeleton className="h-4 w-20" />
@@ -163,18 +208,18 @@ const Analytics = () => {
               </div>
             ) : (
               <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-sm font-medium text-muted-foreground">Total Reviews</p>
-                  <p className="text-2xl font-bold text-foreground">{totalReviews}</p>
+                <div className="space-y-1">
+                  <p className="text-xs sm:text-sm font-medium text-muted-foreground">Total Reviews</p>
+                  <p className="text-xl sm:text-2xl font-bold text-foreground">{totalReviews}</p>
                 </div>
-                <Star className="w-8 h-8 text-accent" />
+                <Star className="w-6 h-6 sm:w-8 sm:h-8 text-accent flex-shrink-0" />
               </div>
             )}
           </CardContent>
         </Card>
 
         <Card className="trustqr-card">
-          <CardContent className="p-6">
+          <CardContent className="p-4 sm:p-6">
             {isLoading ? (
               <div className="space-y-2">
                 <Skeleton className="h-4 w-20" />
@@ -182,18 +227,18 @@ const Analytics = () => {
               </div>
             ) : (
               <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-sm font-medium text-muted-foreground">Page Views</p>
-                  <p className="text-2xl font-bold text-foreground">{totalPageViews}</p>
+                <div className="space-y-1">
+                  <p className="text-xs sm:text-sm font-medium text-muted-foreground">Page Views</p>
+                  <p className="text-xl sm:text-2xl font-bold text-foreground">{totalPageViews}</p>
                 </div>
-                <Eye className="w-8 h-8 text-blue-500" />
+                <Eye className="w-6 h-6 sm:w-8 sm:h-8 text-blue-500 flex-shrink-0" />
               </div>
             )}
           </CardContent>
         </Card>
 
         <Card className="trustqr-card">
-          <CardContent className="p-6">
+          <CardContent className="p-4 sm:p-6">
             {isLoading ? (
               <div className="space-y-2">
                 <Skeleton className="h-4 w-20" />
@@ -201,18 +246,18 @@ const Analytics = () => {
               </div>
             ) : (
               <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-sm font-medium text-muted-foreground">QR Scans</p>
-                  <p className="text-2xl font-bold text-foreground">{totalQrScans}</p>
+                <div className="space-y-1">
+                  <p className="text-xs sm:text-sm font-medium text-muted-foreground">QR Scans</p>
+                  <p className="text-xl sm:text-2xl font-bold text-foreground">{totalQrScans}</p>
                 </div>
-                <QrCode className="w-8 h-8 text-purple-500" />
+                <QrCode className="w-6 h-6 sm:w-8 sm:h-8 text-purple-500 flex-shrink-0" />
               </div>
             )}
           </CardContent>
         </Card>
 
         <Card className="trustqr-card">
-          <CardContent className="p-6">
+          <CardContent className="p-4 sm:p-6">
             {isLoading ? (
               <div className="space-y-2">
                 <Skeleton className="h-4 w-20" />
@@ -220,20 +265,20 @@ const Analytics = () => {
               </div>
             ) : (
               <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-sm font-medium text-muted-foreground">Average Rating</p>
-                  <p className="text-2xl font-bold text-foreground">{averageRating}/5</p>
+                <div className="space-y-1">
+                  <p className="text-xs sm:text-sm font-medium text-muted-foreground">Average Rating</p>
+                  <p className="text-xl sm:text-2xl font-bold text-foreground">{averageRating}/5</p>
                 </div>
-                <Star className="w-8 h-8 text-yellow-500" />
+                <Star className="w-6 h-6 sm:w-8 sm:h-8 text-yellow-500 flex-shrink-0" />
               </div>
             )}
             {!isLoading && (
-              <div className="flex items-center mt-2">
+              <div className="flex items-center mt-3">
                 <div className="flex">
                   {Array.from({ length: 5 }, (_, i) => (
                     <Star
                       key={i}
-                      className={`w-4 h-4 ${
+                      className={`w-3 h-3 sm:w-4 sm:h-4 ${
                         i < Math.floor(averageRating) ? 'text-yellow-500 fill-current' : 'text-muted-foreground'
                       }`}
                     />
@@ -245,7 +290,7 @@ const Analytics = () => {
         </Card>
 
         <Card className="trustqr-card">
-          <CardContent className="p-6">
+          <CardContent className="p-4 sm:p-6">
             {isLoading ? (
               <div className="space-y-2">
                 <Skeleton className="h-4 w-20" />
@@ -253,15 +298,15 @@ const Analytics = () => {
               </div>
             ) : (
               <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-sm font-medium text-muted-foreground">Positive Rate</p>
-                  <p className="text-2xl font-bold text-green-500">{positivePercentage}%</p>
+                <div className="space-y-1">
+                  <p className="text-xs sm:text-sm font-medium text-muted-foreground">Positive Rate</p>
+                  <p className="text-xl sm:text-2xl font-bold text-green-500">{positivePercentage}%</p>
                 </div>
-                <TrendingUp className="w-8 h-8 text-green-500" />
+                <TrendingUp className="w-6 h-6 sm:w-8 sm:h-8 text-green-500 flex-shrink-0" />
               </div>
             )}
             {!isLoading && (
-              <Progress value={positivePercentage} className="mt-2" />
+              <Progress value={positivePercentage} className="mt-3" />
             )}
           </CardContent>
         </Card>
@@ -269,30 +314,30 @@ const Analytics = () => {
 
       {/* Follow-up System Stats */}
       <Card className="trustqr-card">
-        <CardHeader>
-          <div className="flex items-center justify-between">
-            <div>
-              <CardTitle className="flex items-center gap-2">
-                <Mail className="w-5 h-5" />
+        <CardHeader className="pb-4">
+          <div className="flex flex-col space-y-3 sm:flex-row sm:items-center sm:justify-between sm:space-y-0">
+            <div className="space-y-1">
+              <CardTitle className="flex items-center gap-2 text-lg sm:text-xl">
+                <Mail className="w-5 h-5 flex-shrink-0" />
                 Smart Follow-Up System
               </CardTitle>
-              <CardDescription>
+              <CardDescription className="text-sm">
                 Send personalized follow-up messages to customers
               </CardDescription>
             </div>
             <div className="flex items-center gap-2">
-              <Badge variant={userProfile?.plan_tier === 'vip' ? 'gold' : userProfile?.plan_tier === 'premium' ? 'purple' : 'gray'}>
+              <Badge variant={userProfile?.plan_tier === 'vip' ? 'default' : userProfile?.plan_tier === 'premium' ? 'secondary' : 'outline'} className="text-xs">
                 {(userProfile?.plan_tier || 'free').toUpperCase()}
               </Badge>
             </div>
           </div>
         </CardHeader>
-        <CardContent>
+        <CardContent className="pt-0">
           {!stats.hasAccess ? (
-            <div className="text-center py-8">
-              <Mail className="w-12 h-12 text-muted-foreground mx-auto mb-4" />
-              <h3 className="text-lg font-semibold mb-2">Upgrade Required</h3>
-              <p className="text-muted-foreground mb-4">
+            <div className="text-center py-6 sm:py-8">
+              <Mail className="w-10 h-10 sm:w-12 sm:h-12 text-muted-foreground mx-auto mb-4" />
+              <h3 className="text-base sm:text-lg font-semibold mb-2">Upgrade Required</h3>
+              <p className="text-sm text-muted-foreground mb-4 max-w-sm mx-auto">
                 Smart follow-up messages are available for Premium and VIP users.
               </p>
               <Button className="trustqr-gradient text-white">
@@ -305,7 +350,7 @@ const Analytics = () => {
                 <span className="text-sm font-medium">This Month Usage</span>
                 <div className="text-right">
                   {stats.isUnlimited ? (
-                    <Badge variant="gold" className="text-xs">Unlimited</Badge>
+                    <Badge variant="default" className="text-xs">Unlimited</Badge>
                   ) : (
                     <span className="text-sm font-semibold">
                       {stats.used}/{stats.limit} used
@@ -330,48 +375,59 @@ const Analytics = () => {
 
       {/* Recent Reviews with Follow-up Actions */}
       <Card className="trustqr-card">
-        <CardHeader>
-          <CardTitle>Recent Reviews</CardTitle>
-          <CardDescription>
+        <CardHeader className="pb-4">
+          <CardTitle className="text-lg sm:text-xl">Recent Reviews</CardTitle>
+          <CardDescription className="text-sm">
             Customer reviews with smart follow-up actions
           </CardDescription>
         </CardHeader>
-        <CardContent>
+        <CardContent className="pt-0">
           {reviews.length === 0 ? (
             <p className="text-muted-foreground text-center py-8">No reviews yet</p>
           ) : (
             <TooltipProvider>
-              <div className="space-y-4">
+              <div className="space-y-3 sm:space-y-4">
                 {reviews.slice(0, 10).map((review: any) => {
                   const buttonState = getFollowUpButtonState(review);
                   return (
-                    <div key={review.id} className="flex items-center justify-between p-4 border border-border rounded-lg bg-card">
-                      <div className="flex-1">
-                        <div className="flex items-center gap-2 mb-2">
-                          <span className="font-medium">{review.customer_name}</span>
-                          <div className="flex">
-                            {Array.from({ length: 5 }, (_, i) => (
-                              <Star 
-                                key={i} 
-                                className={`w-4 h-4 ${i < review.rating ? 'text-yellow-500 fill-current' : 'text-muted-foreground'}`} 
-                              />
-                            ))}
+                    <div key={review.id} className="flex flex-col space-y-3 p-3 sm:p-4 border border-border rounded-lg bg-card sm:flex-row sm:items-start sm:space-y-0">
+                      <div className="flex-1 min-w-0">
+                        <div className="flex flex-col space-y-2 sm:space-y-1">
+                          <div className="flex flex-col space-y-2 sm:flex-row sm:items-center sm:space-y-0 sm:space-x-2">
+                            <span className="font-medium text-sm break-words">{review.customer_name}</span>
+                            <div className="flex items-center space-x-2">
+                              <div className="flex">
+                                {Array.from({ length: 5 }, (_, i) => (
+                                  <Star 
+                                    key={i} 
+                                    className={`w-3 h-3 sm:w-4 sm:h-4 ${i < review.rating ? 'text-yellow-500 fill-current' : 'text-muted-foreground'}`} 
+                                  />
+                                ))}
+                              </div>
+                              {review.customer_email && (
+                                <Badge variant="outline" className="text-xs px-2 py-0.5 hidden sm:inline-flex">
+                                  {review.customer_email}
+                                </Badge>
+                              )}
+                            </div>
                           </div>
+                          
                           {review.customer_email && (
-                            <Badge variant="outline" className="text-xs">
+                            <Badge variant="outline" className="text-xs px-2 py-0.5 self-start sm:hidden">
                               {review.customer_email}
                             </Badge>
                           )}
+                          
+                          <p className="text-sm text-muted-foreground line-clamp-2 break-words">
+                            {review.review_text}
+                          </p>
+                          <p className="text-xs text-muted-foreground">
+                            {new Date(review.created_at).toLocaleDateString()}
+                          </p>
                         </div>
-                        <p className="text-sm text-muted-foreground truncate mb-1">
-                          {review.review_text}
-                        </p>
-                        <p className="text-xs text-muted-foreground">
-                          {new Date(review.created_at).toLocaleDateString()}
-                        </p>
                       </div>
                       
-                      <div className="ml-4">
+                      <div className="flex-shrink-0 sm:ml-4">
                         <Tooltip>
                           <TooltipTrigger asChild>
                             <Button
@@ -379,15 +435,15 @@ const Analytics = () => {
                               variant={buttonState.variant}
                               disabled={buttonState.disabled}
                               onClick={() => handleSendFollowUp(review)}
-                              className={`${
+                              className={`w-full text-xs sm:w-auto ${
                                 followUpSentStatus[review.id] ? 'bg-green-100 text-green-700 border-green-200' : ''
                               }`}
                             >
-                              {buttonState.icon && <buttonState.icon className="w-4 h-4 mr-1" />}
-                              {buttonState.text}
+                              {buttonState.icon && <buttonState.icon className="w-3 h-3 sm:w-4 sm:h-4 mr-1" />}
+                              <span className="whitespace-nowrap">{buttonState.text}</span>
                             </Button>
                           </TooltipTrigger>
-                          <TooltipContent>
+                          <TooltipContent side="top" className="max-w-xs">
                             {!review.customer_email ? 'No email address provided' :
                              followUpSentStatus[review.id] ? 'Follow-up already sent for this review' :
                              !stats.hasAccess ? 'Upgrade to Premium or VIP to send follow-ups' :
@@ -408,19 +464,19 @@ const Analytics = () => {
       {/* Recent Activity */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         <Card className="trustqr-card lg:col-span-1">
-          <CardHeader>
-            <CardTitle>Recent Activity</CardTitle>
-            <CardDescription>
+          <CardHeader className="pb-4">
+            <CardTitle className="text-lg sm:text-xl">Recent Activity</CardTitle>
+            <CardDescription className="text-sm">
               Live updates from your business
             </CardDescription>
           </CardHeader>
-          <CardContent>
+          <CardContent className="pt-0">
             {isLoading ? (
               <div className="space-y-3">
                 {Array.from({ length: 5 }, (_, i) => (
                   <div key={i} className="flex items-center space-x-3">
-                    <Skeleton className="h-8 w-8 rounded-full" />
-                    <div className="space-y-1 flex-1">
+                    <Skeleton className="h-8 w-8 rounded-full flex-shrink-0" />
+                    <div className="space-y-1 flex-1 min-w-0">
                       <Skeleton className="h-4 w-full" />
                       <Skeleton className="h-3 w-1/2" />
                     </div>
@@ -428,15 +484,15 @@ const Analytics = () => {
                 ))}
               </div>
             ) : recentActivity.length === 0 ? (
-              <p className="text-muted-foreground text-sm">No recent activity</p>
+              <p className="text-muted-foreground text-sm text-center py-6">No recent activity</p>
             ) : (
               <div className="space-y-3">
                 {recentActivity.map((activity) => (
-                  <div key={activity.id} className="flex items-center space-x-3 p-2 rounded-lg bg-muted/50">
-                    <div className={`p-2 rounded-full ${
-                      activity.type === 'review' ? 'bg-yellow-100 text-yellow-600' :
-                      activity.type === 'page_view' ? 'bg-blue-100 text-blue-600' :
-                      'bg-purple-100 text-purple-600'
+                  <div key={activity.id} className="flex items-center space-x-3 p-3 rounded-lg bg-muted/50">
+                    <div className={`p-2 rounded-full flex-shrink-0 ${
+                      activity.type === 'review' ? 'bg-accent/20 text-accent' :
+                      activity.type === 'page_view' ? 'bg-blue-500/20 text-blue-500' :
+                      'bg-purple-500/20 text-purple-500'
                     }`}>
                       {activity.type === 'review' ? <Star className="w-4 h-4" /> :
                        activity.type === 'page_view' ? <Eye className="w-4 h-4" /> :
@@ -458,73 +514,94 @@ const Analytics = () => {
         </Card>
 
         {/* Charts */}
-        <div className="lg:col-span-2 grid grid-cols-1 xl:grid-cols-2 gap-6">
-          <Card className="trustqr-card">
-            <CardHeader>
-              <CardTitle>Daily Feedback Volume</CardTitle>
-              <CardDescription>
-                Feedback received over the last 7 days
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              <ResponsiveContainer width="100%" height={300}>
-                <BarChart data={dailyData}>
-                  <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
-                  <XAxis 
-                    dataKey="date" 
-                    stroke="hsl(var(--muted-foreground))"
-                    tick={{ fontSize: 12 }}
-                  />
-                  <YAxis stroke="hsl(var(--muted-foreground))" tick={{ fontSize: 12 }} />
-                  <ChartTooltip 
-                    contentStyle={{ 
-                      backgroundColor: 'hsl(var(--popover))', 
-                      border: '1px solid hsl(var(--border))',
-                      borderRadius: '8px'
-                    }} 
-                  />
-                  <Bar dataKey="positive" stackId="a" fill="hsl(var(--accent))" />
-                  <Bar dataKey="negative" stackId="a" fill="#ef4444" />
-                </BarChart>
-              </ResponsiveContainer>
-            </CardContent>
-          </Card>
+        <div className="lg:col-span-2 space-y-6">
+          <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
+            <Card className="trustqr-card">
+              <CardHeader className="pb-4">
+                <CardTitle className="text-lg sm:text-xl">Daily Feedback Volume</CardTitle>
+                <CardDescription className="text-sm">
+                  Feedback received over the last 7 days
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="pt-0">
+                <div className="w-full overflow-hidden">
+                  <ResponsiveContainer width="100%" height={280}>
+                    <BarChart data={dailyData} margin={{ top: 20, right: 20, left: 0, bottom: 20 }}>
+                      <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
+                      <XAxis 
+                        dataKey="date" 
+                        stroke="hsl(var(--muted-foreground))"
+                        tick={{ fontSize: 11 }}
+                        interval={0}
+                        angle={-45}
+                        textAnchor="end"
+                        height={60}
+                      />
+                      <YAxis 
+                        stroke="hsl(var(--muted-foreground))" 
+                        tick={{ fontSize: 11 }}
+                        width={30}
+                      />
+                      <ChartTooltip 
+                        contentStyle={{ 
+                          backgroundColor: 'hsl(var(--popover))', 
+                          border: '1px solid hsl(var(--border))',
+                          borderRadius: '8px',
+                          fontSize: '12px'
+                        }} 
+                      />
+                      <Bar dataKey="positive" stackId="a" fill="hsl(var(--accent))" radius={[0, 0, 4, 4]} />
+                      <Bar dataKey="negative" stackId="a" fill="#ef4444" radius={[4, 4, 0, 0]} />
+                    </BarChart>
+                  </ResponsiveContainer>
+                </div>
+              </CardContent>
+            </Card>
 
-          <Card className="trustqr-card">
-            <CardHeader>
-              <CardTitle>Weekly Trends</CardTitle>
-              <CardDescription>
-                Feedback trends over the last 4 weeks
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              <ResponsiveContainer width="100%" height={300}>
-                <LineChart data={weeklyData}>
-                  <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
-                  <XAxis 
-                    dataKey="week" 
-                    stroke="hsl(var(--muted-foreground))"
-                    tick={{ fontSize: 12 }}
-                  />
-                  <YAxis stroke="hsl(var(--muted-foreground))" tick={{ fontSize: 12 }} />
-                  <ChartTooltip 
-                    contentStyle={{ 
-                      backgroundColor: 'hsl(var(--popover))', 
-                      border: '1px solid hsl(var(--border))',
-                      borderRadius: '8px'
-                    }} 
-                  />
-                  <Line 
-                    type="monotone" 
-                    dataKey="feedback" 
-                    stroke="hsl(var(--accent))" 
-                    strokeWidth={3}
-                    dot={{ fill: 'hsl(var(--accent))', strokeWidth: 2 }}
-                  />
-                </LineChart>
-              </ResponsiveContainer>
-            </CardContent>
-          </Card>
+            <Card className="trustqr-card">
+              <CardHeader className="pb-4">
+                <CardTitle className="text-lg sm:text-xl">Weekly Trends</CardTitle>
+                <CardDescription className="text-sm">
+                  Feedback trends over the last 4 weeks
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="pt-0">
+                <div className="w-full overflow-hidden">
+                  <ResponsiveContainer width="100%" height={280}>
+                    <LineChart data={weeklyData} margin={{ top: 20, right: 20, left: 0, bottom: 20 }}>
+                      <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
+                      <XAxis 
+                        dataKey="week" 
+                        stroke="hsl(var(--muted-foreground))"
+                        tick={{ fontSize: 11 }}
+                      />
+                      <YAxis 
+                        stroke="hsl(var(--muted-foreground))" 
+                        tick={{ fontSize: 11 }}
+                        width={30}
+                      />
+                      <ChartTooltip 
+                        contentStyle={{ 
+                          backgroundColor: 'hsl(var(--popover))', 
+                          border: '1px solid hsl(var(--border))',
+                          borderRadius: '8px',
+                          fontSize: '12px'
+                        }} 
+                      />
+                      <Line 
+                        type="monotone" 
+                        dataKey="feedback" 
+                        stroke="hsl(var(--accent))" 
+                        strokeWidth={3}
+                        dot={{ fill: 'hsl(var(--accent))', strokeWidth: 2, r: 4 }}
+                        activeDot={{ r: 6, stroke: 'hsl(var(--accent))', strokeWidth: 2 }}
+                      />
+                    </LineChart>
+                  </ResponsiveContainer>
+                </div>
+              </CardContent>
+            </Card>
+          </div>
         </div>
       </div>
     </div>

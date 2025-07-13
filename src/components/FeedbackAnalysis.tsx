@@ -214,20 +214,20 @@ const FeedbackAnalysis = () => {
 
   return (
     <div className="space-y-6">
-      <div className="mb-8">
-        <h2 className="text-2xl font-bold text-foreground mb-2 flex items-center gap-2">
-          <Brain className="w-6 h-6 text-accent" />
+      <div className="mb-6 space-y-1">
+        <h2 className="text-2xl sm:text-3xl font-bold text-foreground flex items-center gap-2">
+          <Brain className="w-6 h-6 text-accent flex-shrink-0" />
           AI Feedback Analysis
         </h2>
-        <p className="text-muted-foreground">
+        <p className="text-muted-foreground text-sm sm:text-base">
           Intelligent insights from your customer feedback
         </p>
       </div>
 
       {/* Overview Stats */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 lg:gap-6">
         <Card className="trustqr-card">
-          <CardContent className="p-6">
+          <CardContent className="p-4 sm:p-6">
             {isLoading ? (
               <div className="space-y-2">
                 <Skeleton className="h-4 w-20" />
@@ -235,18 +235,18 @@ const FeedbackAnalysis = () => {
               </div>
             ) : (
               <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-sm font-medium text-muted-foreground">Total Responses</p>
-                  <p className="text-2xl font-bold text-foreground">{totalReviews || 0}</p>
+                <div className="space-y-1">
+                  <p className="text-xs sm:text-sm font-medium text-muted-foreground">Total Responses</p>
+                  <p className="text-xl sm:text-2xl font-bold text-foreground">{totalReviews || 0}</p>
                 </div>
-                <div className="text-2xl">📊</div>
+                <div className="text-xl sm:text-2xl flex-shrink-0">📊</div>
               </div>
             )}
           </CardContent>
         </Card>
 
         <Card className="trustqr-card">
-          <CardContent className="p-6">
+          <CardContent className="p-4 sm:p-6">
             {isLoading ? (
               <div className="space-y-2">
                 <Skeleton className="h-4 w-20" />
@@ -254,18 +254,18 @@ const FeedbackAnalysis = () => {
               </div>
             ) : (
               <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-sm font-medium text-muted-foreground">Average Rating</p>
-                  <p className="text-2xl font-bold text-foreground">{averageRating || 0}/5</p>
+                <div className="space-y-1">
+                  <p className="text-xs sm:text-sm font-medium text-muted-foreground">Average Rating</p>
+                  <p className="text-xl sm:text-2xl font-bold text-foreground">{averageRating || 0}/5</p>
                 </div>
-                <div className="text-2xl">⭐</div>
+                <div className="text-xl sm:text-2xl flex-shrink-0">⭐</div>
               </div>
             )}
           </CardContent>
         </Card>
 
-        <Card className="trustqr-card">
-          <CardContent className="p-6">
+        <Card className="trustqr-card sm:col-span-2 lg:col-span-1">
+          <CardContent className="p-4 sm:p-6">
             {isLoading ? (
               <div className="space-y-2">
                 <Skeleton className="h-4 w-20" />
@@ -273,11 +273,11 @@ const FeedbackAnalysis = () => {
               </div>
             ) : (
               <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-sm font-medium text-muted-foreground">Positive Feedback</p>
-                  <p className="text-2xl font-bold text-accent">{sentimentData.positive}%</p>
+                <div className="space-y-1">
+                  <p className="text-xs sm:text-sm font-medium text-muted-foreground">Positive Feedback</p>
+                  <p className="text-xl sm:text-2xl font-bold text-accent">{sentimentData.positive}%</p>
                 </div>
-                <div className="text-2xl">😊</div>
+                <div className="text-xl sm:text-2xl flex-shrink-0">😊</div>
               </div>
             )}
           </CardContent>
@@ -296,30 +296,30 @@ const FeedbackAnalysis = () => {
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-6">
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
             <div className="text-center p-4 bg-green-500/10 rounded-lg border border-green-500/20">
-              <div className="text-3xl mb-2">😊</div>
-              <div className="text-2xl font-bold text-green-400">{sentimentData.positive}%</div>
-              <div className="text-sm text-muted-foreground">Positive Sentiment</div>
+              <div className="text-2xl sm:text-3xl mb-2">😊</div>
+              <div className="text-xl sm:text-2xl font-bold text-green-400">{sentimentData.positive}%</div>
+              <div className="text-xs sm:text-sm text-muted-foreground">Positive Sentiment</div>
             </div>
             <div className="text-center p-4 bg-yellow-500/10 rounded-lg border border-yellow-500/20">
-              <div className="text-3xl mb-2">😐</div>
-              <div className="text-2xl font-bold text-yellow-400">{sentimentData.neutral}%</div>
-              <div className="text-sm text-muted-foreground">Mixed Sentiment</div>
+              <div className="text-2xl sm:text-3xl mb-2">😐</div>
+              <div className="text-xl sm:text-2xl font-bold text-yellow-400">{sentimentData.neutral}%</div>
+              <div className="text-xs sm:text-sm text-muted-foreground">Mixed Sentiment</div>
             </div>
-            <div className="text-center p-4 bg-red-500/10 rounded-lg border border-red-500/20">
-              <div className="text-3xl mb-2">😞</div>
-              <div className="text-2xl font-bold text-red-400">{sentimentData.negative}%</div>
-              <div className="text-sm text-muted-foreground">Negative Sentiment</div>
+            <div className="text-center p-4 bg-red-500/10 rounded-lg border border-red-500/20 sm:col-span-2 lg:col-span-1">
+              <div className="text-2xl sm:text-3xl mb-2">😞</div>
+              <div className="text-xl sm:text-2xl font-bold text-red-400">{sentimentData.negative}%</div>
+              <div className="text-xs sm:text-sm text-muted-foreground">Negative Sentiment</div>
             </div>
           </div>
           
           <div className="bg-accent/10 p-4 rounded-lg">
-            <h4 className="font-semibold mb-2 flex items-center gap-2">
-              <Brain className="w-4 h-4" />
+            <h4 className="font-semibold mb-2 flex items-center gap-2 text-sm sm:text-base">
+              <Brain className="w-4 h-4 flex-shrink-0" />
               How AI Sentiment Analysis Works
             </h4>
-            <p className="text-sm text-muted-foreground">
+            <p className="text-xs sm:text-sm text-muted-foreground leading-relaxed">
               Our AI analyzes keywords, context, and emotional indicators in customer feedback to automatically categorize sentiment. 
               This helps you quickly identify satisfied customers (for review requests) and dissatisfied customers (for immediate attention).
             </p>

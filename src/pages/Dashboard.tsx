@@ -4,6 +4,8 @@ import Header from "@/components/Header";
 import Home from "@/components/Home";
 import AlertSystem from "@/components/AlertSystem";
 import Settings from "@/components/Settings";
+import RecentReviews from "@/components/RecentReviews";
+import PricingPage from "@/components/PricingPage";
 import IntroAnimation from "@/components/IntroAnimation";
 
 const Dashboard = () => {
@@ -28,6 +30,10 @@ const Dashboard = () => {
         return <AlertSystem />;
       case "settings":
         return <Settings />;
+      case "recent-reviews":
+        return <RecentReviews />;
+      case "pricing":
+        return <PricingPage />;
       default:
         return <Home activeTab="generator" />;
     }

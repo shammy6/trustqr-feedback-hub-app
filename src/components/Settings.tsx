@@ -13,7 +13,6 @@ const Settings = () => {
   const { toast } = useToast();
   const [formData, setFormData] = useState({
     business_name: userProfile?.business_name || '',
-    review_page_link: userProfile?.review_page_link || '',
     alert_email: userProfile?.alert_email || '',
     business_logo: userProfile?.business_logo || ''
   });
@@ -121,22 +120,6 @@ const Settings = () => {
               </div>
             </div>
 
-            <div className="space-y-2">
-              <Label htmlFor="reviewPageLink" className="flex items-center gap-2">
-                <Link className="w-4 h-4" />
-                Review Page Link
-              </Label>
-              <Input
-                id="reviewPageLink"
-                value={formData.review_page_link}
-                onChange={(e) => setFormData({ ...formData, review_page_link: e.target.value })}
-                className="bg-input border-border"
-                placeholder="https://g.page/your-business/review"
-              />
-              <p className="text-xs text-muted-foreground">
-                Customers with 4-5 star ratings will be redirected here
-              </p>
-            </div>
 
             <div className="space-y-2">
               <Label htmlFor="alertEmail" className="flex items-center gap-2">

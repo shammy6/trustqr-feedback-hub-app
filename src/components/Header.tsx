@@ -1,5 +1,5 @@
 
-import { QrCode, Bell, Settings, BarChart3, LogOut, User, ChevronDown } from "lucide-react";
+import { QrCode, Bell, Settings, BarChart3, LogOut, User, ChevronDown, MessageSquare } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
@@ -184,9 +184,9 @@ const Header = ({ activeTab, onTabChange }: HeaderProps) => {
                   <Settings className="mr-2 h-4 w-4" />
                   Settings
                 </DropdownMenuItem>
-                <DropdownMenuItem onClick={() => onTabChange('analytics')}>
-                  <BarChart3 className="mr-2 h-4 w-4" />
-                  Analytics
+                <DropdownMenuItem onClick={() => onTabChange('recent-reviews')}>
+                  <MessageSquare className="mr-2 h-4 w-4" />
+                  Recent Reviews
                 </DropdownMenuItem>
                 <DropdownMenuSeparator />
                 <DropdownMenuItem onClick={signOut} className="text-destructive">

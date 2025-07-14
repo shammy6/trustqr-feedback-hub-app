@@ -5,8 +5,10 @@ import { Button } from '@/components/ui/button';
 import { Progress } from '@/components/ui/progress';
 import { Badge } from '@/components/ui/badge';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip as ChartTooltip, ResponsiveContainer, LineChart, Line } from 'recharts';
-import { TrendingUp, TrendingDown, Users, Star, Calendar, Filter, Eye, QrCode, Send, Mail, CheckCircle } from 'lucide-react';
+import { TrendingUp, TrendingDown, Users, Star, Calendar, Filter, Eye, QrCode, Send, Mail, CheckCircle, MessageSquare } from 'lucide-react';
 import { useState, useEffect } from 'react';
 import { useRealtimeAnalytics } from '@/hooks/useRealtimeAnalytics';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -16,9 +18,11 @@ import { useAuth } from '@/components/auth/AuthProvider';
 
 const Analytics = () => {
   const [timeRange, setTimeRange] = useState('30');
-  const [feedbackType, setFeedbackType] = useState('all');
+  const [reviewType, setReviewType] = useState('all');
   const [reviews, setReviews] = useState([]);
   const [followUpSentStatus, setFollowUpSentStatus] = useState<Record<string, boolean>>({});
+  const [showAllPositive, setShowAllPositive] = useState(false);
+  const [showAllNegative, setShowAllNegative] = useState(false);
   const { userProfile } = useAuth();
   const { stats, sendFollowUp, checkFollowUpSent } = useFollowUpSystem();
   const { 
@@ -59,6 +63,8 @@ const Analytics = () => {
   }, [userProfile, checkFollowUpSent]);
 
   const negativePercentage = 100 - positivePercentage;
+  const positiveReviews = reviews.filter((review: any) => review.rating >= 4);
+  const negativeReviews = reviews.filter((review: any) => review.rating <= 2);
 
   const handleSendFollowUp = async (review: any) => {
     if (!review.customer_email) return;
@@ -120,7 +126,7 @@ const Analytics = () => {
       
       data.push({
         date: date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' }),
-        feedback,
+        reviews: feedback,
         positive,
         negative
       });
@@ -150,7 +156,7 @@ const Analytics = () => {
       
       data.push({
         week: `Week ${4 - i}`,
-        feedback,
+        reviews: feedback,
         positive,
         negative
       });
@@ -167,7 +173,7 @@ const Analytics = () => {
         <div className="space-y-1">
           <h2 className="text-3xl font-bold text-foreground">Analytics Dashboard</h2>
           <p className="text-muted-foreground">
-            Track your feedback performance and customer satisfaction
+            Track your review performance and customer satisfaction
           </p>
         </div>
         
@@ -183,7 +189,7 @@ const Analytics = () => {
             </SelectContent>
           </Select>
           
-          <Select value={feedbackType} onValueChange={setFeedbackType}>
+          <Select value={reviewType} onValueChange={setReviewType}>
             <SelectTrigger className="w-full sm:w-[160px] bg-popover border-border">
               <SelectValue placeholder="All Types" />
             </SelectTrigger>
@@ -340,7 +346,7 @@ const Analytics = () => {
               <p className="text-sm text-muted-foreground mb-4 max-w-sm mx-auto">
                 Smart follow-up messages are available for Premium and VIP users.
               </p>
-              <Button className="trustqr-gradient text-white">
+              <Button className="trustqr-gradient text-white" onClick={() => window.location.href = '/app?tab=pricing'}>
                 Upgrade Now
               </Button>
             </div>
@@ -588,9 +594,9 @@ const Analytics = () => {
                           fontSize: '12px'
                         }} 
                       />
-                      <Line 
+                       <Line 
                         type="monotone" 
-                        dataKey="feedback" 
+                        dataKey="reviews" 
                         stroke="hsl(var(--accent))" 
                         strokeWidth={3}
                         dot={{ fill: 'hsl(var(--accent))', strokeWidth: 2, r: 4 }}

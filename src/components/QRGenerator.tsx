@@ -13,26 +13,27 @@ import { useAuth } from './auth/AuthProvider';
 const QRGenerator = () => {
   const { userProfile } = useAuth();
   const [businessName, setBusinessName] = useState(userProfile?.business_name || '');
-  const [feedbackType, setFeedbackType] = useState('general');
+  const [platformLink, setPlatformLink] = useState('');
+  const [selectedPlatform, setSelectedPlatform] = useState('google');
   const [qrData, setQrData] = useState('');
   const [qrGenerated, setQrGenerated] = useState(false);
 
   const handleGenerateQR = async () => {
-    if (!businessName || !feedbackType) return;
+    if (!businessName) return;
     
     // Use the business_uuid from userProfile for the new UUID-based system
     const businessUuid = userProfile?.business_uuid;
     
     if (businessUuid) {
-      // New UUID-based QR code format
-      const feedbackUrl = `https://trustqr.app/feedback/${businessUuid}`;
-      setQrData(feedbackUrl);
-      console.log('Generated UUID-based QR code:', feedbackUrl);
+      // New UUID-based QR code format with platform link parameter
+      const reviewUrl = `https://trustqr.app/review/${businessUuid}${platformLink ? `?redirect=${encodeURIComponent(platformLink)}` : ''}`;
+      setQrData(reviewUrl);
+      console.log('Generated UUID-based QR code:', reviewUrl);
     } else {
       // Fallback to old format for backwards compatibility
-      const feedbackUrl = `https://trustqr.app/feedback/${btoa(businessName)}_${feedbackType}`;
-      setQrData(feedbackUrl);
-      console.log('Generated legacy QR code (no UUID available):', feedbackUrl);
+      const reviewUrl = `https://trustqr.app/review/${btoa(businessName)}_general${platformLink ? `?redirect=${encodeURIComponent(platformLink)}` : ''}`;
+      setQrData(reviewUrl);
+      console.log('Generated legacy QR code (no UUID available):', reviewUrl);
     }
     
     setQrGenerated(true);
@@ -41,7 +42,7 @@ const QRGenerator = () => {
   const handleReset = () => {
     setQrGenerated(false);
     setQrData('');
-    setFeedbackType('general');
+    setPlatformLink('');
   };
 
   const downloadPDF = async () => {
@@ -76,7 +77,7 @@ const QRGenerator = () => {
             <QrCode className="w-8 h-8 text-white" />
           </div>
           <CardTitle className="text-2xl text-foreground">QR Code Generator</CardTitle>
-          <CardDescription>Create custom QR codes for collecting feedback</CardDescription>
+          <CardDescription>Create custom QR codes for collecting reviews</CardDescription>
         </CardHeader>
         <CardContent className="space-y-6">
           {!qrGenerated ? (
@@ -93,23 +94,37 @@ const QRGenerator = () => {
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="feedbackType">Feedback Type</Label>
-                <Select value={feedbackType} onValueChange={setFeedbackType}>
+                <Label htmlFor="platformType">Review Platform</Label>
+                <Select value={selectedPlatform} onValueChange={setSelectedPlatform}>
                   <SelectTrigger className="bg-input border-border">
-                    <SelectValue placeholder="Select feedback type" />
+                    <SelectValue placeholder="Select platform" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="general">General Feedback</SelectItem>
-                    <SelectItem value="service">Service Quality</SelectItem>
-                    <SelectItem value="product">Product Quality</SelectItem>
-                    <SelectItem value="experience">Overall Experience</SelectItem>
+                    <SelectItem value="google">Google Reviews</SelectItem>
+                    <SelectItem value="facebook">Facebook Reviews</SelectItem>
+                    <SelectItem value="yelp">Yelp Reviews</SelectItem>
+                    <SelectItem value="custom">Custom Platform</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
 
+              <div className="space-y-2">
+                <Label htmlFor="platformLink">Platform Link (Optional)</Label>
+                <Input
+                  id="platformLink"
+                  placeholder="https://g.page/yourbusiness/review"
+                  value={platformLink}
+                  onChange={(e) => setPlatformLink(e.target.value)}
+                  className="bg-input border-border"
+                />
+                <p className="text-xs text-muted-foreground">
+                  Customers with positive reviews will be redirected to this link
+                </p>
+              </div>
+
               <Button 
                 onClick={handleGenerateQR}
-                disabled={!businessName || !feedbackType}
+                disabled={!businessName}
                 className="w-full trustqr-emerald-gradient text-white hover:opacity-90"
               >
                 Generate QR Code
@@ -132,7 +147,7 @@ const QRGenerator = () => {
                   QR Code for: <span className="font-semibold">{businessName}</span>
                 </p>
                 <p className="text-xs text-muted-foreground">
-                  Type: {feedbackType.charAt(0).toUpperCase() + feedbackType.slice(1)} Feedback
+                  Platform: {selectedPlatform.charAt(0).toUpperCase() + selectedPlatform.slice(1)} Reviews
                 </p>
                 {userProfile?.business_uuid && (
                   <p className="text-xs text-green-600 font-medium">

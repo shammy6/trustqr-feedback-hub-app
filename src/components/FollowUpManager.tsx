@@ -81,7 +81,10 @@ const FollowUpManager = ({ reviews = [] }: FollowUpManagerProps) => {
               <p className="text-muted-foreground mb-4">
                 Follow-up messages are only available for Premium and VIP users.
               </p>
-              <Button className="trustqr-gradient text-white">
+              <Button 
+                onClick={() => window.location.href = '/app?tab=pricing'}
+                className="trustqr-gradient text-white"
+              >
                 Upgrade to Premium
               </Button>
             </div>

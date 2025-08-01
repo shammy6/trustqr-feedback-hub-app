@@ -86,7 +86,7 @@ const SubscriptionLock = ({
 
           <div className="text-center pt-2">
             <p className="text-xs text-muted-foreground">
-              30-day money-back guarantee • Cancel anytime • Instant activation
+              7-day money-back guarantee • Cancel anytime • Instant activation
             </p>
           </div>
         </CardContent>

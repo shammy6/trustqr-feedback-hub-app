@@ -315,7 +315,7 @@ const FeedbackForm = () => {
     if (!formData.rating || !formData.feedback || !formData.customerName) {
       toast({
         title: "Please complete the form",
-        description: "Name, rating and feedback are required",
+        description: "Name, rating and review are required",
         variant: "destructive"
       });
       return;
@@ -446,7 +446,7 @@ const FeedbackForm = () => {
 
       // Show success toast
       toast({
-        title: "🎉 Thank you for your feedback!",
+        title: "🎉 Thank you for your review!",
         description: "Your review has been submitted successfully.",
       });
 
@@ -503,11 +503,11 @@ const FeedbackForm = () => {
     }
   };
 
-  const handleAdditionalFeedbackSubmit = async () => {
-    // For additional feedback, we could store it or just show confirmation
+  const handleAdditionalReviewSubmit = async () => {
+    // For additional review details, we could store it or just show confirmation
     toast({
-      title: "Additional feedback submitted",
-      description: "A manager will review your feedback and may contact you directly.",
+      title: "Additional review submitted",
+      description: "A manager will review your comments and may contact you directly.",
     });
   };
 
@@ -538,7 +538,7 @@ const FeedbackForm = () => {
                 className="w-8 h-8 object-contain"
               />
             </div>
-            <h3 className="text-lg font-semibold mb-4">Processing your feedback...</h3>
+            <h3 className="text-lg font-semibold mb-4">Processing your review...</h3>
             <div className="space-y-3">
               <Skeleton className="h-4 w-3/4 mx-auto" />
               <Skeleton className="h-4 w-1/2 mx-auto" />
@@ -562,7 +562,7 @@ const FeedbackForm = () => {
               </div>
               <CardTitle className="text-xl text-green-400">Thank You!</CardTitle>
               <CardDescription>
-                We appreciate your positive feedback!
+                We appreciate your positive review!
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-4 text-center">
@@ -600,14 +600,14 @@ const FeedbackForm = () => {
             </div>
             
             <Button 
-              onClick={handleAdditionalFeedbackSubmit}
+              onClick={handleAdditionalReviewSubmit}
               className="w-full trustqr-emerald-gradient text-white hover:opacity-90 transition-all duration-200 hover:scale-105"
             >
-              Submit Additional Feedback
+              Submit Additional Review
             </Button>
             
             <div className="text-center text-sm text-muted-foreground animate-fade-in">
-              <p>A manager will review your feedback and may contact you directly.</p>
+              <p>A manager will review your comments and may contact you directly.</p>
             </div>
           </CardContent>
         </Card>
@@ -628,7 +628,7 @@ const FeedbackForm = () => {
           </div>
           <CardTitle className="text-xl text-foreground">Share Your Experience</CardTitle>
           <CardDescription>
-            Your feedback helps us serve you better
+            Your review helps us serve you better
           </CardDescription>
         </CardHeader>
         <CardContent>

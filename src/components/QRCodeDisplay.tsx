@@ -45,7 +45,7 @@ const QRCodeDisplay = ({ qrData, businessName }: QRCodeDisplayProps) => {
   const handleDownload = () => {
     const link = document.createElement('a');
     link.href = qrImageUrl;
-    link.download = `${businessName}-feedback-qr.png`;
+    link.download = `${businessName}-review-qr.png`;
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);

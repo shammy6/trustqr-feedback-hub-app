@@ -68,7 +68,7 @@ const LoginForm = ({ onToggleMode }: LoginFormProps) => {
             {isSignup ? 'Create Account' : 'Welcome Back'}
           </CardTitle>
           <CardDescription>
-            {isSignup ? 'Start collecting better feedback today' : 'Sign in to your TrustQR dashboard'}
+            {isSignup ? 'Start collecting better reviews today' : 'Sign in to your TrustQR dashboard'}
           </CardDescription>
         </CardHeader>
         <CardContent>

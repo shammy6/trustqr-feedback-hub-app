@@ -387,7 +387,7 @@ const ReviewAnalysis = () => {
         </CardContent>
       </Card>
 
-      {/* Recent Feedback with AI Analysis */}
+      {/* Recent Reviews with AI Analysis */}
       <Card className="trustqr-card">
         <CardHeader>
           <CardTitle className="flex items-center gap-2">

@@ -20,6 +20,8 @@ const Analytics = () => {
   const [timeRange, setTimeRange] = useState('30');
   const [reviewType, setReviewType] = useState('all');
   const [reviews, setReviews] = useState([]);
+  const [pageViews, setPageViews] = useState([]);
+  const [qrScans, setQrScans] = useState([]);
   const [followUpSentStatus, setFollowUpSentStatus] = useState<Record<string, boolean>>({});
   const [showAllPositive, setShowAllPositive] = useState(false);
   const [showAllNegative, setShowAllNegative] = useState(false);
@@ -35,32 +37,58 @@ const Analytics = () => {
     isLoading 
   } = useRealtimeAnalytics();
 
-  // Fetch recent reviews and check follow-up status
+  // Fetch filtered data based on time range and review type
   useEffect(() => {
-    const fetchRecentReviews = async () => {
+    const fetchFilteredData = async () => {
       if (!userProfile?.id) return;
 
-      const { data, error } = await supabase
+      const cutoffDate = new Date();
+      cutoffDate.setDate(cutoffDate.getDate() - parseInt(timeRange));
+
+      // Fetch reviews with filters
+      let reviewQuery = supabase
         .from('reviews')
         .select('*')
         .eq('business_id', userProfile.id)
-        .order('created_at', { ascending: false })
-        .limit(20);
+        .gte('created_at', cutoffDate.toISOString())
+        .order('created_at', { ascending: false });
 
-      if (!error && data) {
-        setReviews(data);
+      const { data: reviewData, error: reviewError } = await reviewQuery;
+
+      if (!reviewError && reviewData) {
+        setReviews(reviewData);
         
         // Check follow-up status for each review
         const statusMap: Record<string, boolean> = {};
-        for (const review of data) {
+        for (const review of reviewData) {
           statusMap[review.id] = await checkFollowUpSent(review.id);
         }
         setFollowUpSentStatus(statusMap);
       }
+
+      // Fetch page views
+      const { data: pageViewData } = await supabase
+        .from('page_views')
+        .select('*')
+        .eq('business_uuid', userProfile.business_uuid)
+        .gte('created_at', cutoffDate.toISOString())
+        .order('created_at', { ascending: false });
+
+      if (pageViewData) setPageViews(pageViewData);
+
+      // Fetch QR scans
+      const { data: qrScanData } = await supabase
+        .from('qr_scans')
+        .select('*')
+        .eq('business_uuid', userProfile.business_uuid)
+        .gte('created_at', cutoffDate.toISOString())
+        .order('created_at', { ascending: false });
+
+      if (qrScanData) setQrScans(qrScanData);
     };
 
-    fetchRecentReviews();
-  }, [userProfile, checkFollowUpSent]);
+    fetchFilteredData();
+  }, [userProfile, checkFollowUpSent, timeRange, reviewType]);
 
   const negativePercentage = 100 - positivePercentage;
   const positiveReviews = reviews.filter((review: any) => review.rating >= 4);
@@ -258,76 +286,188 @@ const Analytics = () => {
           </DialogContent>
         </Dialog>
 
-        <Card className="trustqr-card">
-          <CardContent className="p-4 sm:p-6">
-            {isLoading ? (
-              <div className="space-y-2">
-                <Skeleton className="h-4 w-20" />
-                <Skeleton className="h-8 w-16" />
-              </div>
-            ) : (
-              <div className="flex items-center justify-between">
-                <div className="space-y-1">
-                  <p className="text-xs sm:text-sm font-medium text-muted-foreground">Page Views</p>
-                  <p className="text-xl sm:text-2xl font-bold text-foreground">{totalPageViews}</p>
-                </div>
-                <Eye className="w-6 h-6 sm:w-8 sm:h-8 text-blue-500 flex-shrink-0" />
-              </div>
-            )}
-          </CardContent>
-        </Card>
+        <Dialog>
+          <DialogTrigger asChild>
+            <Card className="trustqr-card cursor-pointer hover:shadow-lg transition-shadow">
+              <CardContent className="p-4 sm:p-6">
+                {isLoading ? (
+                  <div className="space-y-2">
+                    <Skeleton className="h-4 w-20" />
+                    <Skeleton className="h-8 w-16" />
+                  </div>
+                ) : (
+                  <div className="flex items-center justify-between">
+                    <div className="space-y-1">
+                      <p className="text-xs sm:text-sm font-medium text-muted-foreground">Page Views</p>
+                      <p className="text-xl sm:text-2xl font-bold text-foreground">{totalPageViews}</p>
+                    </div>
+                    <Eye className="w-6 h-6 sm:w-8 sm:h-8 text-blue-500 flex-shrink-0" />
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+          </DialogTrigger>
+          <DialogContent className="max-w-4xl max-h-[80vh] overflow-y-auto">
+            <DialogHeader>
+              <DialogTitle>Page Views ({totalPageViews})</DialogTitle>
+            </DialogHeader>
+            <div className="space-y-4 mt-4">
+              {pageViews.length === 0 ? (
+                <p className="text-muted-foreground text-center py-8">No page views recorded</p>
+              ) : (
+                pageViews.map((view: any) => (
+                  <div key={view.id} className="p-4 border border-border rounded-lg">
+                    <div className="flex items-center justify-between mb-2">
+                      <span className="text-sm font-medium">Page Visit</span>
+                      <span className="text-xs text-muted-foreground">
+                        {new Date(view.created_at).toLocaleString()}
+                      </span>
+                    </div>
+                    {view.referrer && (
+                      <p className="text-sm text-muted-foreground">Referrer: {view.referrer}</p>
+                    )}
+                    {view.user_agent && (
+                      <p className="text-xs text-muted-foreground truncate">Device: {view.user_agent}</p>
+                    )}
+                  </div>
+                ))
+              )}
+            </div>
+          </DialogContent>
+        </Dialog>
 
-        <Card className="trustqr-card">
-          <CardContent className="p-4 sm:p-6">
-            {isLoading ? (
-              <div className="space-y-2">
-                <Skeleton className="h-4 w-20" />
-                <Skeleton className="h-8 w-16" />
-              </div>
-            ) : (
-              <div className="flex items-center justify-between">
-                <div className="space-y-1">
-                  <p className="text-xs sm:text-sm font-medium text-muted-foreground">QR Scans</p>
-                  <p className="text-xl sm:text-2xl font-bold text-foreground">{totalQrScans}</p>
-                </div>
-                <QrCode className="w-6 h-6 sm:w-8 sm:h-8 text-purple-500 flex-shrink-0" />
-              </div>
-            )}
-          </CardContent>
-        </Card>
+        <Dialog>
+          <DialogTrigger asChild>
+            <Card className="trustqr-card cursor-pointer hover:shadow-lg transition-shadow">
+              <CardContent className="p-4 sm:p-6">
+                {isLoading ? (
+                  <div className="space-y-2">
+                    <Skeleton className="h-4 w-20" />
+                    <Skeleton className="h-8 w-16" />
+                  </div>
+                ) : (
+                  <div className="flex items-center justify-between">
+                    <div className="space-y-1">
+                      <p className="text-xs sm:text-sm font-medium text-muted-foreground">QR Scans</p>
+                      <p className="text-xl sm:text-2xl font-bold text-foreground">{totalQrScans}</p>
+                    </div>
+                    <QrCode className="w-6 h-6 sm:w-8 sm:h-8 text-purple-500 flex-shrink-0" />
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+          </DialogTrigger>
+          <DialogContent className="max-w-4xl max-h-[80vh] overflow-y-auto">
+            <DialogHeader>
+              <DialogTitle>QR Scans ({totalQrScans})</DialogTitle>
+            </DialogHeader>
+            <div className="space-y-4 mt-4">
+              {qrScans.length === 0 ? (
+                <p className="text-muted-foreground text-center py-8">No QR scans recorded</p>
+              ) : (
+                qrScans.map((scan: any) => (
+                  <div key={scan.id} className="p-4 border border-border rounded-lg">
+                    <div className="flex items-center justify-between mb-2">
+                      <span className="text-sm font-medium">QR Code Scan</span>
+                      <span className="text-xs text-muted-foreground">
+                        {new Date(scan.created_at).toLocaleString()}
+                      </span>
+                    </div>
+                    <p className="text-sm text-muted-foreground">Type: {scan.scan_type || 'QR Code'}</p>
+                    {scan.user_agent && (
+                      <p className="text-xs text-muted-foreground truncate">Device: {scan.user_agent}</p>
+                    )}
+                  </div>
+                ))
+              )}
+            </div>
+          </DialogContent>
+        </Dialog>
 
-        <Card className="trustqr-card">
-          <CardContent className="p-4 sm:p-6">
-            {isLoading ? (
-              <div className="space-y-2">
-                <Skeleton className="h-4 w-20" />
-                <Skeleton className="h-8 w-16" />
+        <Dialog>
+          <DialogTrigger asChild>
+            <Card className="trustqr-card cursor-pointer hover:shadow-lg transition-shadow">
+              <CardContent className="p-4 sm:p-6">
+                {isLoading ? (
+                  <div className="space-y-2">
+                    <Skeleton className="h-4 w-20" />
+                    <Skeleton className="h-8 w-16" />
+                  </div>
+                ) : (
+                  <div className="flex items-center justify-between">
+                    <div className="space-y-1">
+                      <p className="text-xs sm:text-sm font-medium text-muted-foreground">Average Rating</p>
+                      <p className="text-xl sm:text-2xl font-bold text-foreground">{averageRating}/5</p>
+                    </div>
+                    <Star className="w-6 h-6 sm:w-8 sm:h-8 text-yellow-500 flex-shrink-0" />
+                  </div>
+                )}
+                {!isLoading && (
+                  <div className="flex items-center mt-3">
+                    <div className="flex">
+                      {Array.from({ length: 5 }, (_, i) => (
+                        <Star
+                          key={i}
+                          className={`w-3 h-3 sm:w-4 sm:h-4 ${
+                            i < Math.floor(averageRating) ? 'text-yellow-500 fill-current' : 'text-muted-foreground'
+                          }`}
+                        />
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+          </DialogTrigger>
+          <DialogContent className="max-w-4xl max-h-[80vh] overflow-y-auto">
+            <DialogHeader>
+              <DialogTitle>Rating Breakdown</DialogTitle>
+            </DialogHeader>
+            <div className="space-y-4 mt-4">
+              <div className="grid grid-cols-5 gap-4">
+                {[5, 4, 3, 2, 1].map(rating => {
+                  const count = reviews.filter((r: any) => r.rating === rating).length;
+                  const percentage = totalReviews > 0 ? (count / totalReviews) * 100 : 0;
+                  return (
+                    <div key={rating} className="text-center p-3 border border-border rounded-lg">
+                      <div className="flex items-center justify-center mb-2">
+                        <span className="text-sm font-medium mr-1">{rating}</span>
+                        <Star className="w-4 h-4 text-yellow-500 fill-current" />
+                      </div>
+                      <p className="text-lg font-bold">{count}</p>
+                      <p className="text-xs text-muted-foreground">{percentage.toFixed(1)}%</p>
+                    </div>
+                  );
+                })}
               </div>
-            ) : (
-              <div className="flex items-center justify-between">
-                <div className="space-y-1">
-                  <p className="text-xs sm:text-sm font-medium text-muted-foreground">Average Rating</p>
-                  <p className="text-xl sm:text-2xl font-bold text-foreground">{averageRating}/5</p>
-                </div>
-                <Star className="w-6 h-6 sm:w-8 sm:h-8 text-yellow-500 flex-shrink-0" />
+              <div className="space-y-3">
+                <h4 className="font-medium">Recent Reviews by Rating</h4>
+                {[5, 4, 3, 2, 1].map(rating => {
+                  const ratingReviews = reviews.filter((r: any) => r.rating === rating);
+                  if (ratingReviews.length === 0) return null;
+                  return (
+                    <div key={rating} className="border border-border rounded-lg p-3">
+                      <h5 className="font-medium mb-2 flex items-center">
+                        {rating} Star Reviews ({ratingReviews.length})
+                        <div className="flex ml-2">
+                          {Array.from({ length: rating }, (_, i) => (
+                            <Star key={i} className="w-3 h-3 text-yellow-500 fill-current" />
+                          ))}
+                        </div>
+                      </h5>
+                      {ratingReviews.slice(0, 3).map((review: any) => (
+                        <div key={review.id} className="mb-2 p-2 bg-muted/30 rounded text-sm">
+                          <p className="font-medium">{review.customer_name}</p>
+                          <p className="text-muted-foreground">{review.review_text}</p>
+                        </div>
+                      ))}
+                    </div>
+                  );
+                })}
               </div>
-            )}
-            {!isLoading && (
-              <div className="flex items-center mt-3">
-                <div className="flex">
-                  {Array.from({ length: 5 }, (_, i) => (
-                    <Star
-                      key={i}
-                      className={`w-3 h-3 sm:w-4 sm:h-4 ${
-                        i < Math.floor(averageRating) ? 'text-yellow-500 fill-current' : 'text-muted-foreground'
-                      }`}
-                    />
-                  ))}
-                </div>
-              </div>
-            )}
-          </CardContent>
-        </Card>
+            </div>
+          </DialogContent>
+        </Dialog>
 
         <Dialog>
           <DialogTrigger asChild>

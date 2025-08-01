@@ -7,6 +7,8 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/u
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Bell, AlertTriangle, Mail, Eye, EyeOff, X } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
+import { supabase } from '@/integrations/supabase/client';
+import { useAuth } from '@/components/auth/AuthProvider';
 
 interface Alert {
   id: string;
@@ -19,6 +21,7 @@ interface Alert {
   isRead: boolean;
   severity: 'high' | 'medium' | 'low';
   reviewDate: string;
+  platform?: string;
   wouldRecommend?: string;
   sentiment?: 'positive' | 'mixed' | 'negative';
   sentimentEmoji?: string;
@@ -30,6 +33,7 @@ const AlertSystem = () => {
   const [alerts, setAlerts] = useState<Alert[]>([]);
   const [sortBy, setSortBy] = useState<'timestamp' | 'sentiment' | 'severity'>('timestamp');
   const { toast } = useToast();
+  const { userProfile } = useAuth();
   const unreadAlerts = alerts.filter(alert => !alert.isRead);
   
   const [showEmailModal, setShowEmailModal] = useState(false);
@@ -38,86 +42,121 @@ const AlertSystem = () => {
   const [revealedNames, setRevealedNames] = useState<Set<string>>(new Set());
   const [newAlertIds, setNewAlertIds] = useState<Set<string>>(new Set());
 
-  // Load alerts from localStorage and set up real-time listening
+  // Load real alerts from database and set up real-time listening
   useEffect(() => {
-    const loadAlerts = () => {
-      const storedAlerts = JSON.parse(localStorage.getItem('reviewAlerts') || '[]');
-      const defaultAlerts: Alert[] = [
-        {
-          id: 'default-1',
-          type: 'low_rating',
-          customerName: 'John Davis',
-          customerEmail: 'john.davis@email.com',
-          rating: 2,
-          review: 'Service was extremely slow and the food was cold when it arrived.',
-          timestamp: '5 minutes ago',
-          reviewDate: '2024-06-18 14:30:00',
-          isRead: false,
-          severity: 'high',
-          sentiment: 'negative',
-          sentimentEmoji: '😞',
-          sentimentSummary: 'Customer shows dissatisfaction with 3 negative indicators',
-          sentimentConfidence: 0.85
-        },
-        {
-          id: 'default-2',
-          type: 'complaint',
-          customerName: 'Sarah Mitchell',
-          customerEmail: 'sarah.mitchell@email.com',
-          rating: 1,
-          review: 'Very disappointed with the cleanliness of the restaurant.',
-          timestamp: '2 hours ago',
-          reviewDate: '2024-06-18 12:15:00',
-          isRead: false,
-          severity: 'high',
-          sentiment: 'negative',
-          sentimentEmoji: '😞',
-          sentimentSummary: 'Customer shows dissatisfaction with 2 negative indicators',
-          sentimentConfidence: 0.78
-        }
-      ];
-      
-      const allAlerts = [...storedAlerts, ...defaultAlerts.filter(
-        defaultAlert => !storedAlerts.some(stored => stored.id === defaultAlert.id)
-      )];
-      
-      setAlerts(allAlerts);
-    };
+    const loadRealAlerts = async () => {
+      if (!userProfile?.id) return;
 
-    // Listen for new review alerts
-    const handleNewAlert = (event: CustomEvent) => {
-      const newAlert = event.detail;
-      setAlerts(prev => [newAlert, ...prev]);
-      setNewAlertIds(prev => new Set([...prev, newAlert.id]));
-      
-      // Show toast notification for new alert
-      toast({
-        title: "New Review Alert",
-        description: `${newAlert.customerName} left a ${newAlert.rating}-star review`,
-        variant: newAlert.rating <= 2 ? "destructive" : "default"
-      });
+      const { data: reviews, error } = await supabase
+        .from('reviews')
+        .select('*')
+        .eq('business_id', userProfile.id)
+        .lte('rating', 3)
+        .order('created_at', { ascending: false });
 
-      // Remove the "new" indicator after 5 seconds
-      setTimeout(() => {
-        setNewAlertIds(prev => {
-          const updated = new Set(prev);
-          updated.delete(newAlert.id);
-          return updated;
+      if (!error && reviews) {
+        const realAlerts: Alert[] = reviews.map(review => {
+          const getRelativeTime = (timestamp: string) => {
+            const now = new Date();
+            const past = new Date(timestamp);
+            const diffInSeconds = Math.floor((now.getTime() - past.getTime()) / 1000);
+            
+            if (diffInSeconds < 60) return `${diffInSeconds} sec ago`;
+            if (diffInSeconds < 3600) return `${Math.floor(diffInSeconds / 60)} min ago`;
+            if (diffInSeconds < 86400) return `${Math.floor(diffInSeconds / 3600)} hr ago`;
+            return `${Math.floor(diffInSeconds / 86400)} days ago`;
+          };
+
+          return {
+            id: review.id,
+            type: review.rating <= 2 ? 'low_rating' : 'complaint',
+            customerName: review.customer_name || 'Anonymous',
+            customerEmail: review.customer_email || 'No email provided',
+            rating: review.rating,
+            review: review.review_text,
+            timestamp: getRelativeTime(review.created_at),
+            reviewDate: review.created_at,
+            isRead: false,
+            severity: review.rating <= 2 ? 'high' : 'medium',
+            platform: 'TrustQR',
+            sentiment: review.rating <= 2 ? 'negative' : 'mixed',
+            sentimentEmoji: review.rating <= 2 ? '😞' : '😐',
+            sentimentSummary: `Customer ${review.rating <= 2 ? 'shows dissatisfaction' : 'has mixed feelings'} with ${review.rating}-star rating`,
+            sentimentConfidence: 0.8
+          };
         });
-      }, 5000);
+
+        setAlerts(realAlerts);
+      }
     };
 
-    loadAlerts();
+    // Listen for new review alerts via Supabase realtime
+    const handleNewAlert = (payload: any) => {
+      if (payload.eventType === 'INSERT' && payload.new.rating <= 3) {
+        const review = payload.new;
+        const getRelativeTime = (timestamp: string) => {
+          const now = new Date();
+          const past = new Date(timestamp);
+          const diffInSeconds = Math.floor((now.getTime() - past.getTime()) / 1000);
+          
+          if (diffInSeconds < 60) return `${diffInSeconds} sec ago`;
+          if (diffInSeconds < 3600) return `${Math.floor(diffInSeconds / 60)} min ago`;
+          if (diffInSeconds < 86400) return `${Math.floor(diffInSeconds / 3600)} hr ago`;
+          return `${Math.floor(diffInSeconds / 86400)} days ago`;
+        };
+
+        const newAlert: Alert = {
+          id: review.id,
+          type: review.rating <= 2 ? 'low_rating' : 'complaint',
+          customerName: review.customer_name || 'Anonymous',
+          customerEmail: review.customer_email || 'No email provided',
+          rating: review.rating,
+          review: review.review_text,
+          timestamp: getRelativeTime(review.created_at),
+          reviewDate: review.created_at,
+          isRead: false,
+          severity: review.rating <= 2 ? 'high' : 'medium',
+          platform: 'TrustQR',
+          sentiment: review.rating <= 2 ? 'negative' : 'mixed',
+          sentimentEmoji: review.rating <= 2 ? '😞' : '😐',
+          sentimentSummary: `Customer ${review.rating <= 2 ? 'shows dissatisfaction' : 'has mixed feelings'} with ${review.rating}-star rating`,
+          sentimentConfidence: 0.8
+        };
+
+        setAlerts(prev => [newAlert, ...prev]);
+        setNewAlertIds(prev => new Set([...prev, newAlert.id]));
+        
+        // Show toast notification for new alert
+        toast({
+          title: "New Review Alert",
+          description: `${newAlert.customerName} left a ${newAlert.rating}-star review`,
+          variant: newAlert.rating <= 2 ? "destructive" : "default"
+        });
+
+        // Remove the "new" indicator after 5 seconds
+        setTimeout(() => {
+          setNewAlertIds(prev => {
+            const updated = new Set(prev);
+            updated.delete(newAlert.id);
+            return updated;
+          });
+        }, 5000);
+      }
+    };
+
+    loadRealAlerts();
     
-    // Set up event listener for real-time alerts
-    window.addEventListener('newReviewAlert', handleNewAlert as EventListener);
-    
-    // Still poll as backup
-    const interval = setInterval(loadAlerts, 5000);
+    // Set up Supabase realtime subscription
+    const channel = supabase
+      .channel('review-alerts')
+      .on('postgres_changes', 
+        { event: 'INSERT', schema: 'public', table: 'reviews' },
+        handleNewAlert
+      )
+      .subscribe();
     
     return () => {
-      clearInterval(interval);
-      window.removeEventListener('newReviewAlert', handleNewAlert as EventListener);
+      supabase.removeChannel(channel);
     };
   }, [toast]);
 
@@ -299,6 +338,11 @@ const AlertSystem = () => {
                           <Badge variant="outline" className={`${getSeverityColor(alert.severity)} w-fit transition-all duration-200`}>
                             {alert.severity} priority
                           </Badge>
+                          {alert.platform && (
+                            <Badge variant="outline" className="bg-blue-100 text-blue-800 border-blue-200 w-fit">
+                              {alert.platform}
+                            </Badge>
+                          )}
                           {alert.sentiment && (
                             <Badge variant="outline" className={`${getSentimentColor(alert.sentiment)} w-fit transition-all duration-200`}>
                               {alert.sentimentEmoji} {alert.sentiment}

@@ -60,7 +60,7 @@ const AuthPage = () => {
             {isSignUp ? 'Create Account' : 'Welcome Back'}
           </CardTitle>
           <CardDescription>
-            {isSignUp ? 'Start collecting better feedback today' : 'Sign in to your TrustQR dashboard'}
+            {isSignUp ? 'Start collecting better reviews today' : 'Sign in to your TrustQR dashboard'}
           </CardDescription>
         </CardHeader>
         <CardContent>

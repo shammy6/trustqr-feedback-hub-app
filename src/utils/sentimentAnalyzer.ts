@@ -12,7 +12,7 @@ export const analyzeSentiment = (text: string): SentimentResult => {
       sentiment: 'mixed',
       confidence: 0.5,
       emoji: '😐',
-      summary: 'No feedback text to analyze'
+      summary: 'No review text to analyze'
     };
   }
 
@@ -97,14 +97,14 @@ export const analyzeSentiment = (text: string): SentimentResult => {
     sentiment = 'mixed';
     confidence = 0.7;
     emoji = '😐';
-    summary = 'Customer feedback contains both positive and negative elements';
+    summary = 'Customer review contains both positive and negative elements';
   } else {
     // Fallback based on length and punctuation
     if (isShort && !hasExclamation && !hasQuestion) {
       sentiment = 'mixed';
       confidence = 0.5;
       emoji = '😐';
-      summary = 'Brief feedback with neutral tone';
+      summary = 'Brief review with neutral tone';
     } else if (hasExclamation) {
       sentiment = 'positive';
       confidence = 0.6;
@@ -114,7 +114,7 @@ export const analyzeSentiment = (text: string): SentimentResult => {
       sentiment = 'mixed';
       confidence = 0.5;
       emoji = '😐';
-      summary = 'Neutral feedback tone';
+      summary = 'Neutral review tone';
     }
   }
 

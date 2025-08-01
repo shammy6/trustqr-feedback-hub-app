@@ -8,7 +8,7 @@ import { useRealtimeAnalytics } from "@/hooks/useRealtimeAnalytics";
 import { useAuth } from "@/components/auth/AuthProvider";
 import SubscriptionLock from "@/components/SubscriptionLock";
 
-const FeedbackAnalysis = () => {
+const ReviewAnalysis = () => {
   const { userProfile } = useAuth();
   const { 
     totalReviews, 
@@ -42,12 +42,12 @@ const FeedbackAnalysis = () => {
   if (!hasAccess()) {
     return (
       <SubscriptionLock
-        title="AI Feedback Analysis"
-        description="Advanced AI-powered insights to understand your customer feedback better"
+        title="AI Review Analysis"
+        description="Advanced AI-powered insights to understand your customer reviews better"
         features={[
-          "Real-time AI sentiment analysis of customer feedback",
+          "Real-time AI sentiment analysis of customer reviews",
           "Smart performance insights and recommendations", 
-          "Automated categorization of positive, neutral, and negative feedback",
+          "Automated categorization of positive, neutral, and negative reviews",
           "AI-powered suggestions to improve customer satisfaction",
           "Advanced analytics dashboard with trend analysis",
           "Priority customer support and feature updates"
@@ -58,7 +58,7 @@ const FeedbackAnalysis = () => {
   }
 
   // Debug logs to understand the data structure
-  console.log('FeedbackAnalysis - Analytics Data:', {
+  console.log('ReviewAnalysis - Analytics Data:', {
     totalReviews,
     averageRating,
     positivePercentage,
@@ -85,25 +85,25 @@ const FeedbackAnalysis = () => {
     return `${Math.floor(diffInSeconds / 86400)} days ago`;
   };
 
-  // Convert recent activity to feedback format for AI analysis with safe defaults
-  const recentFeedback = (recentActivity || [])
+  // Convert recent activity to review format for AI analysis with safe defaults
+  const recentReviews = (recentActivity || [])
     .filter(activity => activity?.type === 'review')
     .slice(0, 3)
     .map((activity, index) => ({
       id: index + 1,
       customerName: activity.description?.replace('New review from ', '') || 'Anonymous',
       rating: 4 + Math.floor(Math.random() * 2), // Mock rating 4-5 for positive reviews
-      feedback: index === 0 ? "Amazing service! Will definitely come back." : 
+      review: index === 0 ? "Amazing service! Will definitely come back." : 
                 index === 1 ? "Good experience overall, friendly staff." : 
                 "Nice atmosphere and quality products.",
       sentiment: "positive",
       timestamp: getRelativeTime(activity.timestamp)
     }));
 
-  // Analyze recent feedback with AI
-  const analyzedFeedback = recentFeedback.map(feedback => ({
-    ...feedback,
-    aiAnalysis: analyzeSentiment(feedback.feedback)
+  // Analyze recent reviews with AI
+  const analyzedReviews = recentReviews.map(review => ({
+    ...review,
+    aiAnalysis: analyzeSentiment(review.review)
   }));
 
   // Dynamic suggestions based on current performance
@@ -112,20 +112,20 @@ const FeedbackAnalysis = () => {
     
     if (positive >= 70) {
       return [
-        "🎉 Excellent work! Your positive feedback rate is outstanding at " + positive + "%",
+        "🎉 Excellent work! Your positive review rate is outstanding at " + positive + "%",
         "💡 Consider asking satisfied customers to leave reviews on Google to boost your online presence",
         "🔄 Maintain your current service standards - customers clearly love what you're doing"
       ];
     } else if (negative >= 20) {
       return [
-        "⚠️ Address service speed issues mentioned in recent feedback",
+        "⚠️ Address service speed issues mentioned in recent reviews",
         "🌡️ Implement temperature checks for beverages to ensure consistency",
         "📋 Consider staff training on customer service best practices"
       ];
     } else {
       return [
-        "📈 Your feedback is trending positively - keep up the good work!",
-        "🎯 Focus on converting neutral feedback to positive by addressing minor issues",
+        "📈 Your reviews are trending positively - keep up the good work!",
+        "🎯 Focus on converting neutral reviews to positive by addressing minor issues",
         "💪 Consider implementing a customer loyalty program to increase satisfaction"
       ];
     }
@@ -137,11 +137,11 @@ const FeedbackAnalysis = () => {
     
     let insight = "";
     if (trend === "positive") {
-      insight = `Your business is performing exceptionally well with ${positive}% positive feedback. Customers consistently praise your service quality and atmosphere. This strong performance indicates that your current operational strategies are highly effective.`;
+      insight = `Your business is performing exceptionally well with ${positive}% positive reviews. Customers consistently praise your service quality and atmosphere. This strong performance indicates that your current operational strategies are highly effective.`;
     } else if (trend === "negative") {
-      insight = `There are some areas that need attention, with ${negative}% negative feedback. The main concerns seem to be around service speed and product consistency. Addressing these issues could significantly improve customer satisfaction.`;
+      insight = `There are some areas that need attention, with ${negative}% negative reviews. The main concerns seem to be around service speed and product consistency. Addressing these issues could significantly improve customer satisfaction.`;
     } else {
-      insight = `Your business shows steady performance with room for improvement. While ${positive}% of feedback is positive, the ${neutral}% neutral responses suggest opportunities to exceed customer expectations and create more memorable experiences.`;
+      insight = `Your business shows steady performance with room for improvement. While ${positive}% of reviews are positive, the ${neutral}% neutral responses suggest opportunities to exceed customer expectations and create more memorable experiences.`;
     }
     
     return insight;
@@ -170,10 +170,10 @@ const FeedbackAnalysis = () => {
         <div className="mb-8">
           <h2 className="text-2xl font-bold text-foreground mb-2 flex items-center gap-2">
             <Brain className="w-6 h-6 text-accent" />
-            AI Feedback Analysis
+            AI Review Analysis
           </h2>
           <p className="text-muted-foreground">
-            Loading intelligent insights from your customer feedback...
+            Loading intelligent insights from your customer reviews...
           </p>
         </div>
         
@@ -217,10 +217,10 @@ const FeedbackAnalysis = () => {
       <div className="mb-6 space-y-1">
         <h2 className="text-2xl sm:text-3xl font-bold text-foreground flex items-center gap-2">
           <Brain className="w-6 h-6 text-accent flex-shrink-0" />
-          AI Feedback Analysis
+          AI Review Analysis
         </h2>
         <p className="text-muted-foreground text-sm sm:text-base">
-          Intelligent insights from your customer feedback
+          Intelligent insights from your customer reviews
         </p>
       </div>
 
@@ -274,7 +274,7 @@ const FeedbackAnalysis = () => {
             ) : (
               <div className="flex items-center justify-between">
                 <div className="space-y-1">
-                  <p className="text-xs sm:text-sm font-medium text-muted-foreground">Positive Feedback</p>
+                  <p className="text-xs sm:text-sm font-medium text-muted-foreground">Positive Reviews</p>
                   <p className="text-xl sm:text-2xl font-bold text-accent">{sentimentData.positive}%</p>
                 </div>
                 <div className="text-xl sm:text-2xl flex-shrink-0">😊</div>
@@ -292,7 +292,7 @@ const FeedbackAnalysis = () => {
             AI Sentiment Analysis Engine
           </CardTitle>
           <CardDescription>
-            Real-time sentiment analysis of customer feedback using advanced AI
+            Real-time sentiment analysis of customer reviews using advanced AI
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-6">
@@ -320,7 +320,7 @@ const FeedbackAnalysis = () => {
               How AI Sentiment Analysis Works
             </h4>
             <p className="text-xs sm:text-sm text-muted-foreground leading-relaxed">
-              Our AI analyzes keywords, context, and emotional indicators in customer feedback to automatically categorize sentiment. 
+              Our AI analyzes keywords, context, and emotional indicators in customer reviews to automatically categorize sentiment. 
               This helps you quickly identify satisfied customers (for review requests) and dissatisfied customers (for immediate attention).
             </p>
           </div>
@@ -335,7 +335,7 @@ const FeedbackAnalysis = () => {
             Sentiment Distribution
           </CardTitle>
           <CardDescription>
-            Breakdown of customer sentiment across all feedback
+            Breakdown of customer sentiment across all reviews
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
@@ -392,50 +392,50 @@ const FeedbackAnalysis = () => {
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
             <Zap className="w-5 h-5" />
-            Recent Feedback with AI Analysis
+            Recent Reviews with AI Analysis
           </CardTitle>
           <CardDescription>Latest customer responses analyzed by AI</CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
-          {analyzedFeedback.length > 0 ? analyzedFeedback.map((feedback) => (
-            <div key={feedback.id} className="p-4 border border-border rounded-lg bg-card/50">
+          {analyzedReviews.length > 0 ? analyzedReviews.map((review) => (
+            <div key={review.id} className="p-4 border border-border rounded-lg bg-card/50">
               <div className="flex flex-col gap-3">
                 <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-2">
                   <div className="flex items-center gap-2">
-                    <span className="font-medium text-sm">{feedback.customerName}</span>
-                    <Badge variant="outline" className={getSentimentColor(feedback.sentiment)}>
-                      {getSentimentEmoji(feedback.sentiment)} {feedback.sentiment}
+                    <span className="font-medium text-sm">{review.customerName}</span>
+                    <Badge variant="outline" className={getSentimentColor(review.sentiment)}>
+                      {getSentimentEmoji(review.sentiment)} {review.sentiment}
                     </Badge>
                   </div>
                   <div className="flex items-center gap-1">
-                    <span className="text-sm">{"⭐".repeat(feedback.rating)}</span>
-                    <span className="text-xs text-muted-foreground ml-2">{feedback.timestamp}</span>
+                    <span className="text-sm">{"⭐".repeat(review.rating)}</span>
+                    <span className="text-xs text-muted-foreground ml-2">{review.timestamp}</span>
                   </div>
                 </div>
                 
-                <p className="text-sm text-muted-foreground">{feedback.feedback}</p>
+                <p className="text-sm text-muted-foreground">{review.review}</p>
                 
                 <div className="bg-accent/10 p-3 rounded-lg border-l-4 border-accent">
                   <div className="flex items-center gap-2 mb-2">
                     <Brain className="w-4 h-4 text-accent" />
                     <span className="text-xs font-medium text-accent">AI Analysis</span>
-                    <Badge variant="outline" className={getSentimentColor(feedback.aiAnalysis.sentiment)}>
-                      {feedback.aiAnalysis.emoji} {feedback.aiAnalysis.sentiment}
+                    <Badge variant="outline" className={getSentimentColor(review.aiAnalysis.sentiment)}>
+                      {review.aiAnalysis.emoji} {review.aiAnalysis.sentiment}
                     </Badge>
                     <span className="text-xs text-muted-foreground">
-                      {Math.round(feedback.aiAnalysis.confidence * 100)}% confidence
+                      {Math.round(review.aiAnalysis.confidence * 100)}% confidence
                     </span>
                   </div>
-                  <p className="text-sm text-foreground">{feedback.aiAnalysis.summary}</p>
+                  <p className="text-sm text-foreground">{review.aiAnalysis.summary}</p>
                 </div>
               </div>
             </div>
           )) : (
             <div className="text-center py-8">
               <div className="text-4xl mb-4">📊</div>
-              <p className="text-muted-foreground">No recent feedback to analyze yet</p>
+              <p className="text-muted-foreground">No recent reviews to analyze yet</p>
               <p className="text-sm text-muted-foreground mt-2">
-                Feedback will appear here as customers submit reviews
+                Reviews will appear here as customers submit them
               </p>
             </div>
           )}
@@ -470,4 +470,4 @@ const FeedbackAnalysis = () => {
   );
 };
 
-export default FeedbackAnalysis;
+export default ReviewAnalysis;

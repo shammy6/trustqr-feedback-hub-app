@@ -14,7 +14,7 @@ interface Alert {
   customerName: string;
   customerEmail: string;
   rating: number;
-  feedback: string;
+  review: string;
   timestamp: string;
   isRead: boolean;
   severity: 'high' | 'medium' | 'low';
@@ -41,7 +41,7 @@ const AlertSystem = () => {
   // Load alerts from localStorage and set up real-time listening
   useEffect(() => {
     const loadAlerts = () => {
-      const storedAlerts = JSON.parse(localStorage.getItem('feedbackAlerts') || '[]');
+      const storedAlerts = JSON.parse(localStorage.getItem('reviewAlerts') || '[]');
       const defaultAlerts: Alert[] = [
         {
           id: 'default-1',
@@ -49,7 +49,7 @@ const AlertSystem = () => {
           customerName: 'John Davis',
           customerEmail: 'john.davis@email.com',
           rating: 2,
-          feedback: 'Service was extremely slow and the food was cold when it arrived.',
+          review: 'Service was extremely slow and the food was cold when it arrived.',
           timestamp: '5 minutes ago',
           reviewDate: '2024-06-18 14:30:00',
           isRead: false,
@@ -65,7 +65,7 @@ const AlertSystem = () => {
           customerName: 'Sarah Mitchell',
           customerEmail: 'sarah.mitchell@email.com',
           rating: 1,
-          feedback: 'Very disappointed with the cleanliness of the restaurant.',
+          review: 'Very disappointed with the cleanliness of the restaurant.',
           timestamp: '2 hours ago',
           reviewDate: '2024-06-18 12:15:00',
           isRead: false,
@@ -84,7 +84,7 @@ const AlertSystem = () => {
       setAlerts(allAlerts);
     };
 
-    // Listen for new feedback alerts
+    // Listen for new review alerts
     const handleNewAlert = (event: CustomEvent) => {
       const newAlert = event.detail;
       setAlerts(prev => [newAlert, ...prev]);
@@ -92,7 +92,7 @@ const AlertSystem = () => {
       
       // Show toast notification for new alert
       toast({
-        title: "New Feedback Alert",
+        title: "New Review Alert",
         description: `${newAlert.customerName} left a ${newAlert.rating}-star review`,
         variant: newAlert.rating <= 2 ? "destructive" : "default"
       });
@@ -110,14 +110,14 @@ const AlertSystem = () => {
     loadAlerts();
     
     // Set up event listener for real-time alerts
-    window.addEventListener('newFeedbackAlert', handleNewAlert as EventListener);
+    window.addEventListener('newReviewAlert', handleNewAlert as EventListener);
     
     // Still poll as backup
     const interval = setInterval(loadAlerts, 5000);
     
     return () => {
       clearInterval(interval);
-      window.removeEventListener('newFeedbackAlert', handleNewAlert as EventListener);
+      window.removeEventListener('newReviewAlert', handleNewAlert as EventListener);
     };
   }, [toast]);
 
@@ -141,29 +141,29 @@ const AlertSystem = () => {
     );
     setAlerts(updatedAlerts);
     
-    const storedAlerts = JSON.parse(localStorage.getItem('feedbackAlerts') || '[]');
+    const storedAlerts = JSON.parse(localStorage.getItem('reviewAlerts') || '[]');
     const updatedStoredAlerts = storedAlerts.map((alert: Alert) => 
       alert.id === alertId ? { ...alert, isRead: true } : alert
     );
-    localStorage.setItem('feedbackAlerts', JSON.stringify(updatedStoredAlerts));
+    localStorage.setItem('reviewAlerts', JSON.stringify(updatedStoredAlerts));
   };
 
   const markAllAsRead = () => {
     const updatedAlerts = alerts.map(alert => ({ ...alert, isRead: true }));
     setAlerts(updatedAlerts);
     
-    const storedAlerts = JSON.parse(localStorage.getItem('feedbackAlerts') || '[]');
+    const storedAlerts = JSON.parse(localStorage.getItem('reviewAlerts') || '[]');
     const updatedStoredAlerts = storedAlerts.map((alert: Alert) => ({ ...alert, isRead: true }));
-    localStorage.setItem('feedbackAlerts', JSON.stringify(updatedStoredAlerts));
+    localStorage.setItem('reviewAlerts', JSON.stringify(updatedStoredAlerts));
   };
 
   const deleteAlert = (alertId: string) => {
     const updatedAlerts = alerts.filter(alert => alert.id !== alertId);
     setAlerts(updatedAlerts);
     
-    const storedAlerts = JSON.parse(localStorage.getItem('feedbackAlerts') || '[]');
+    const storedAlerts = JSON.parse(localStorage.getItem('reviewAlerts') || '[]');
     const updatedStoredAlerts = storedAlerts.filter((alert: Alert) => alert.id !== alertId);
-    localStorage.setItem('feedbackAlerts', JSON.stringify(updatedStoredAlerts));
+    localStorage.setItem('reviewAlerts', JSON.stringify(updatedStoredAlerts));
   };
 
   const showCustomerEmail = (alert: Alert) => {
@@ -229,7 +229,7 @@ const AlertSystem = () => {
         <div>
           <h2 className="text-2xl font-bold text-foreground mb-2">Alert Center</h2>
           <p className="text-muted-foreground">
-            Monitor and respond to customer feedback that needs attention
+            Monitor and respond to customer reviews that need attention
           </p>
         </div>
         
@@ -269,7 +269,7 @@ const AlertSystem = () => {
             <Bell className="w-12 h-12 text-muted-foreground mx-auto mb-4 animate-pulse" />
             <h3 className="text-lg font-semibold text-foreground mb-2">No alerts</h3>
             <p className="text-muted-foreground">
-              All feedback is looking good! New alerts will appear here when customers leave low ratings.
+              All reviews are looking good! New alerts will appear here when customers leave low ratings.
             </p>
           </CardContent>
         </Card>
@@ -342,7 +342,7 @@ const AlertSystem = () => {
               </CardHeader>
               <CardContent>
                 <div className="bg-muted/30 p-4 rounded-lg mb-4 transition-all duration-200 hover:bg-muted/50">
-                  <p className="text-sm text-foreground break-words">{alert.feedback}</p>
+                  <p className="text-sm text-foreground break-words">{alert.review}</p>
                 </div>
                 
                 {alert.sentimentSummary && (
@@ -408,7 +408,7 @@ const AlertSystem = () => {
               <div>
                 <label className="text-sm font-medium text-muted-foreground">Review Content</label>
                 <div className="bg-muted/30 p-3 rounded-lg mt-1 transition-all duration-200 hover:bg-muted/50">
-                  <p className="text-sm">{selectedAlert.feedback}</p>
+                  <p className="text-sm">{selectedAlert.review}</p>
                 </div>
               </div>
               

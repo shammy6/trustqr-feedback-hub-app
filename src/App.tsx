@@ -9,6 +9,9 @@ import AuthPage from "./components/auth/AuthPage";
 import ProtectedRoute from "./components/auth/ProtectedRoute";
 import Index from "./pages/Index";
 import Feedback from "./pages/Feedback";
+import Terms from "./pages/Terms";
+import Privacy from "./pages/Privacy";
+import Refunds from "./pages/Refunds";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -35,6 +38,11 @@ const AppContent = () => {
         {/* Public feedback routes - no authentication required */}
         <Route path="/feedback/:id" element={<Feedback />} />
         <Route path="/review/:id" element={<Feedback />} />
+        
+        {/* Footer pages */}
+        <Route path="/terms" element={<Terms />} />
+        <Route path="/privacy" element={<Privacy />} />
+        <Route path="/refunds" element={<Refunds />} />
         <Route path="/auth" element={<AuthPage />} />
         
         {/* Protected routes */}

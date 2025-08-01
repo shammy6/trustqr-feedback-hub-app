@@ -1,6 +1,6 @@
 
 import QRGenerator from "./QRGenerator";
-import FeedbackAnalysis from "./FeedbackAnalysis";
+import ReviewAnalysis from "./ReviewAnalysis";
 import Analytics from "./Analytics";
 
 interface HomeProps {
@@ -13,7 +13,7 @@ const Home = ({ activeTab }: HomeProps) => {
       case "generator":
         return <QRGenerator />;
       case "analysis":
-        return <FeedbackAnalysis />;
+        return <ReviewAnalysis />;
       case "analytics":
         return <Analytics />;
       default:

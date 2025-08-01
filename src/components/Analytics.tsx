@@ -120,13 +120,13 @@ const Analytics = () => {
         return reviewDate === dateStr;
       });
       
-      const feedback = dayReviews.length;
+      const reviewCount = dayReviews.length;
       const positive = dayReviews.filter((r: any) => r.rating >= 4).length;
       const negative = dayReviews.filter((r: any) => r.rating <= 2).length;
       
       data.push({
         date: date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' }),
-        reviews: feedback,
+        reviews: reviewCount,
         positive,
         negative
       });
@@ -150,13 +150,13 @@ const Analytics = () => {
         return reviewDate >= weekStart && reviewDate <= weekEnd;
       });
       
-      const feedback = weekReviews.length;
+      const reviewCount = weekReviews.length;
       const positive = weekReviews.filter((r: any) => r.rating >= 4).length;
       const negative = weekReviews.filter((r: any) => r.rating <= 2).length;
       
       data.push({
         week: `Week ${4 - i}`,
-        reviews: feedback,
+        reviews: reviewCount,
         positive,
         negative
       });
@@ -205,24 +205,58 @@ const Analytics = () => {
 
       {/* Key Metrics */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4 lg:gap-6">
-        <Card className="trustqr-card">
-          <CardContent className="p-4 sm:p-6">
-            {isLoading ? (
-              <div className="space-y-2">
-                <Skeleton className="h-4 w-20" />
-                <Skeleton className="h-8 w-16" />
-              </div>
-            ) : (
-              <div className="flex items-center justify-between">
-                <div className="space-y-1">
-                  <p className="text-xs sm:text-sm font-medium text-muted-foreground">Total Reviews</p>
-                  <p className="text-xl sm:text-2xl font-bold text-foreground">{totalReviews}</p>
-                </div>
-                <Star className="w-6 h-6 sm:w-8 sm:h-8 text-accent flex-shrink-0" />
-              </div>
-            )}
-          </CardContent>
-        </Card>
+        <Dialog>
+          <DialogTrigger asChild>
+            <Card className="trustqr-card cursor-pointer hover:shadow-lg transition-shadow">
+              <CardContent className="p-4 sm:p-6">
+                {isLoading ? (
+                  <div className="space-y-2">
+                    <Skeleton className="h-4 w-20" />
+                    <Skeleton className="h-8 w-16" />
+                  </div>
+                ) : (
+                  <div className="flex items-center justify-between">
+                    <div className="space-y-1">
+                      <p className="text-xs sm:text-sm font-medium text-muted-foreground">Total Reviews</p>
+                      <p className="text-xl sm:text-2xl font-bold text-foreground">{totalReviews}</p>
+                    </div>
+                    <Star className="w-6 h-6 sm:w-8 sm:h-8 text-accent flex-shrink-0" />
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+          </DialogTrigger>
+          <DialogContent className="max-w-4xl max-h-[80vh] overflow-y-auto">
+            <DialogHeader>
+              <DialogTitle>All Reviews ({totalReviews})</DialogTitle>
+            </DialogHeader>
+            <div className="space-y-4 mt-4">
+              {reviews.length === 0 ? (
+                <p className="text-muted-foreground text-center py-8">No reviews yet</p>
+              ) : (
+                reviews.map((review: any) => (
+                  <div key={review.id} className="p-4 border border-border rounded-lg">
+                    <div className="flex items-center justify-between mb-2">
+                      <span className="font-medium">{review.customer_name}</span>
+                      <div className="flex">
+                        {Array.from({ length: 5 }, (_, i) => (
+                          <Star 
+                            key={i} 
+                            className={`w-4 h-4 ${i < review.rating ? 'text-yellow-500 fill-current' : 'text-muted-foreground'}`} 
+                          />
+                        ))}
+                      </div>
+                    </div>
+                    <p className="text-sm text-muted-foreground mb-2">{review.review_text}</p>
+                    <p className="text-xs text-muted-foreground">
+                      {new Date(review.created_at).toLocaleDateString()}
+                    </p>
+                  </div>
+                ))
+              )}
+            </div>
+          </DialogContent>
+        </Dialog>
 
         <Card className="trustqr-card">
           <CardContent className="p-4 sm:p-6">
@@ -295,27 +329,61 @@ const Analytics = () => {
           </CardContent>
         </Card>
 
-        <Card className="trustqr-card">
-          <CardContent className="p-4 sm:p-6">
-            {isLoading ? (
-              <div className="space-y-2">
-                <Skeleton className="h-4 w-20" />
-                <Skeleton className="h-8 w-16" />
-              </div>
-            ) : (
-              <div className="flex items-center justify-between">
-                <div className="space-y-1">
-                  <p className="text-xs sm:text-sm font-medium text-muted-foreground">Positive Rate</p>
-                  <p className="text-xl sm:text-2xl font-bold text-green-500">{positivePercentage}%</p>
-                </div>
-                <TrendingUp className="w-6 h-6 sm:w-8 sm:h-8 text-green-500 flex-shrink-0" />
-              </div>
-            )}
-            {!isLoading && (
-              <Progress value={positivePercentage} className="mt-3" />
-            )}
-          </CardContent>
-        </Card>
+        <Dialog>
+          <DialogTrigger asChild>
+            <Card className="trustqr-card cursor-pointer hover:shadow-lg transition-shadow">
+              <CardContent className="p-4 sm:p-6">
+                {isLoading ? (
+                  <div className="space-y-2">
+                    <Skeleton className="h-4 w-20" />
+                    <Skeleton className="h-8 w-16" />
+                  </div>
+                ) : (
+                  <div className="flex items-center justify-between">
+                    <div className="space-y-1">
+                      <p className="text-xs sm:text-sm font-medium text-muted-foreground">Positive Rate</p>
+                      <p className="text-xl sm:text-2xl font-bold text-green-500">{positivePercentage}%</p>
+                    </div>
+                    <TrendingUp className="w-6 h-6 sm:w-8 sm:h-8 text-green-500 flex-shrink-0" />
+                  </div>
+                )}
+                {!isLoading && (
+                  <Progress value={positivePercentage} className="mt-3" />
+                )}
+              </CardContent>
+            </Card>
+          </DialogTrigger>
+          <DialogContent className="max-w-4xl max-h-[80vh] overflow-y-auto">
+            <DialogHeader>
+              <DialogTitle>Positive Reviews ({positiveReviews.length})</DialogTitle>
+            </DialogHeader>
+            <div className="space-y-4 mt-4">
+              {positiveReviews.length === 0 ? (
+                <p className="text-muted-foreground text-center py-8">No positive reviews yet</p>
+              ) : (
+                positiveReviews.map((review: any) => (
+                  <div key={review.id} className="p-4 border border-border rounded-lg">
+                    <div className="flex items-center justify-between mb-2">
+                      <span className="font-medium">{review.customer_name}</span>
+                      <div className="flex">
+                        {Array.from({ length: 5 }, (_, i) => (
+                          <Star 
+                            key={i} 
+                            className={`w-4 h-4 ${i < review.rating ? 'text-yellow-500 fill-current' : 'text-muted-foreground'}`} 
+                          />
+                        ))}
+                      </div>
+                    </div>
+                    <p className="text-sm text-muted-foreground mb-2">{review.review_text}</p>
+                    <p className="text-xs text-muted-foreground">
+                      {new Date(review.created_at).toLocaleDateString()}
+                    </p>
+                  </div>
+                ))
+              )}
+            </div>
+          </DialogContent>
+        </Dialog>
       </div>
 
       {/* Follow-up System Stats */}
@@ -524,9 +592,9 @@ const Analytics = () => {
           <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
             <Card className="trustqr-card">
               <CardHeader className="pb-4">
-                <CardTitle className="text-lg sm:text-xl">Daily Feedback Volume</CardTitle>
+                <CardTitle className="text-lg sm:text-xl">Daily Review Volume</CardTitle>
                 <CardDescription className="text-sm">
-                  Feedback received over the last 7 days
+                  Reviews received over the last 7 days
                 </CardDescription>
               </CardHeader>
               <CardContent className="pt-0">
@@ -568,7 +636,7 @@ const Analytics = () => {
               <CardHeader className="pb-4">
                 <CardTitle className="text-lg sm:text-xl">Weekly Trends</CardTitle>
                 <CardDescription className="text-sm">
-                  Feedback trends over the last 4 weeks
+                  Review trends over the last 4 weeks
                 </CardDescription>
               </CardHeader>
               <CardContent className="pt-0">
